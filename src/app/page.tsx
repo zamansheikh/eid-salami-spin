@@ -1,206 +1,147 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from "next/link";
+import { useState } from "react";
 
-export default function Home() {
-  const router = useRouter();
-  const [creatorName, setCreatorName] = useState('');
-  const [totalAmount, setTotalAmount] = useState('');
-  const [peopleCount, setPeopleCount] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+type CreateResponse = {
+  sessionId: string;
+  shareUrl: string;
+  creatorUrl: string;
+  message?: string;
+};
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+export default function HomePage() {
+  const [organizerName, setOrganizerName] = useState("");
+  const [totalAmount, setTotalAmount] = useState(1000);
+  const [peopleCount, setPeopleCount] = useState(5);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<CreateResponse | null>(null);
 
-    const amount = parseInt(totalAmount);
-    const count = parseInt(peopleCount);
+  const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    setResult(null);
 
-    if (!creatorName.trim()) {
-      setError('আপনার নাম লিখুন');
-      return;
-    }
-    if (!amount || amount < 10) {
-      setError('সর্বনিম্ন ১০ টাকা দিতে হবে');
-      return;
-    }
-    if (!count || count < 1 || count > 50) {
-      setError('১ থেকে ৫০ জন পর্যন্ত নির্বাচন করুন');
-      return;
-    }
-    if (amount < count) {
-      setError('পরিমাণ অবশ্যই মানুষের সংখ্যার চেয়ে বেশি হতে হবে');
-      return;
-    }
-
-    setIsLoading(true);
     try {
-      const res = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          creatorName: creatorName.trim(),
-          totalAmount: amount,
-          peopleCount: count,
+          organizerName,
+          totalAmount,
+          peopleCount,
         }),
       });
 
-      const data = await res.json();
-      if (data.success) {
-        router.push(`/created/${data.sessionId}`);
-      } else {
-        setError(data.error || 'কিছু সমস্যা হয়েছে');
+      const data = (await response.json()) as CreateResponse;
+      if (!response.ok) {
+        throw new Error(data.message || "সেশন তৈরি করা যায়নি");
       }
-    } catch {
-      setError('সংযোগ ত্রুটি, আবার চেষ্টা করুন');
+
+      setResult(data);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "একটি সমস্যা হয়েছে, আবার চেষ্টা করুন।"
+      );
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center px-4 py-10 overflow-hidden">
-      {/* Floating decorations */}
-      <div className="absolute top-10 left-10 text-6xl animate-float moon-glow opacity-60 select-none" style={{ animationDelay: '0s' }}>🌙</div>
-      <div className="absolute top-20 right-16 text-4xl animate-float opacity-40 select-none" style={{ animationDelay: '1s' }}>⭐</div>
-      <div className="absolute bottom-20 left-20 text-3xl animate-float opacity-30 select-none" style={{ animationDelay: '2s' }}>✨</div>
-      <div className="absolute bottom-32 right-10 text-5xl animate-float moon-glow opacity-50 select-none" style={{ animationDelay: '0.5s' }}>🕌</div>
-      <div className="absolute top-1/3 right-8 text-2xl animate-float opacity-20 select-none" style={{ animationDelay: '1.5s' }}>🌟</div>
+    <main className="main-wrap">
+      <div className="hero-badge">🌙 Eid Mubarak • সালামি চাকা</div>
+      <h1 className="hero-title">ঈদ সালামি ভাগ করুন আনন্দে</h1>
+      <p className="hero-desc">
+        টার্গেট সালামির অ্যামাউন্ট এবং কতজনকে দিবেন সেট করুন। সিস্টেম র‌্যান্ডমভাবে
+        অ্যামাউন্ট ভাগ করবে, একটি শেয়ার লিংক তৈরি হবে, আর সবাই স্পিন করে নিজের সালামি
+        জিতবে।
+      </p>
 
-      {/* Hero Section */}
-      <div className="relative z-10 text-center mb-10 animate-fadeInUp">
-        <div className="text-7xl sm:text-8xl mb-4 animate-float moon-glow">🌙</div>
-        <h1 className="text-4xl sm:text-6xl font-bold mb-3">
-          <span className="animate-shimmer">ঈদ সালামি</span>
-        </h1>
-        <p className="text-lg sm:text-xl text-emerald-100 max-w-lg mx-auto leading-relaxed">
-          ঈদের আনন্দে প্রিয়জনদের সালামি দিন! 🎉
-          <br />
-          <span className="text-gold-300">স্পিন করুন • সালামি জিতুন • আনন্দ ভাগ করুন</span>
-        </p>
-      </div>
-
-      {/* Form Card */}
-      <div className="relative z-10 w-full max-w-md animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
-        <div className="glass-card p-8">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gold-300">সালামি সেটআপ করুন</h2>
-            <p className="text-sm text-emerald-200 mt-1">আপনার সালামি টার্গেট ও মানুষের সংখ্যা দিন</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-gold-200 mb-2">
-                ✨ আপনার নাম
-              </label>
+      <section className="grid-2">
+        <article className="panel sparkle">
+          <h2>নতুন সালামি সেশন তৈরি করুন</h2>
+          <form onSubmit={handleCreate}>
+            <div className="form-row">
+              <label htmlFor="organizer">আপনার নাম</label>
               <input
-                type="text"
-                className="input-eid"
-                placeholder="যেমনঃ রহিম ভাই"
-                value={creatorName}
-                onChange={(e) => setCreatorName(e.target.value)}
-                maxLength={100}
+                id="organizer"
+                value={organizerName}
+                onChange={(event) => setOrganizerName(event.target.value)}
+                placeholder="যেমন: মামা, বড় ভাই, আব্বু"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gold-200 mb-2">
-                💰 মোট সালামি পরিমাণ (টাকা)
-              </label>
+            <div className="form-row">
+              <label htmlFor="amount">মোট সালামি টার্গেট (টাকা)</label>
               <input
+                id="amount"
                 type="number"
-                className="input-eid"
-                placeholder="যেমনঃ ১০০০"
-                value={totalAmount}
-                onChange={(e) => setTotalAmount(e.target.value)}
-                min={10}
-                max={1000000}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gold-200 mb-2">
-                👥 কতজনের মধ্যে বিতরণ
-              </label>
-              <input
-                type="number"
-                className="input-eid"
-                placeholder="যেমনঃ ৫"
-                value={peopleCount}
-                onChange={(e) => setPeopleCount(e.target.value)}
                 min={1}
-                max={50}
+                value={totalAmount}
+                onChange={(event) => setTotalAmount(Number(event.target.value))}
               />
             </div>
 
-            {totalAmount && peopleCount && parseInt(totalAmount) >= parseInt(peopleCount) && (
-              <div className="bg-emerald-900/40 border border-gold-500/30 rounded-xl p-4 text-center">
-                <p className="text-sm text-emerald-200">প্রতি জনে গড়ে পাবে</p>
-                <p className="text-2xl font-bold text-gold-300">
-                  ৳ {Math.floor(parseInt(totalAmount) / parseInt(peopleCount))}
-                </p>
-                <p className="text-xs text-emerald-300 mt-1">
-                  (প্রকৃত পরিমাণ র‍্যান্ডম হবে! 🎲)
-                </p>
-              </div>
-            )}
+            <div className="form-row">
+              <label htmlFor="people">কতজন মানুষ</label>
+              <input
+                id="people"
+                type="number"
+                min={1}
+                value={peopleCount}
+                onChange={(event) => setPeopleCount(Number(event.target.value))}
+              />
+            </div>
 
-            {error && (
-              <div className="bg-red-500/20 border border-red-400/40 rounded-xl p-3 text-center text-red-200 text-sm">
-                ⚠️ {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="btn-gold w-full text-lg"
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  তৈরি হচ্ছে...
-                </span>
-              ) : (
-                '🎁 সালামি তৈরি করুন'
-              )}
+            <button className="btn btn-primary" type="submit" disabled={loading}>
+              {loading ? "তৈরি হচ্ছে..." : "সালামি লিংক তৈরি করুন"}
             </button>
           </form>
-        </div>
 
-        {/* Footer info */}
-        <div className="text-center mt-8 text-emerald-300/60 text-xs space-y-1">
-          <p>🕌 ঈদ মোবারক! সবার জন্য শুভকামনা 🕌</p>
-          <p>ভালোবাসা ও আনন্দ ছড়িয়ে দিন</p>
-        </div>
-      </div>
+          <p className="status">{error}</p>
 
-      {/* How it works */}
-      <div className="relative z-10 w-full max-w-2xl mt-16 animate-fadeInUp" style={{ animationDelay: '0.6s' }}>
-        <h3 className="text-center text-2xl font-bold text-gold-300 mb-8">কিভাবে কাজ করে? 🤔</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="glass-card p-6 text-center">
-            <div className="text-4xl mb-3">💰</div>
-            <h4 className="font-bold text-gold-300 mb-2">১। সালামি সেট করুন</h4>
-            <p className="text-sm text-emerald-200">মোট পরিমাণ ও মানুষের সংখ্যা দিন</p>
+          {result && (
+            <div className="panel" style={{ marginTop: "1rem" }}>
+              <p style={{ marginTop: 0 }}>লিংক তৈরি হয়েছে। এখন শেয়ার করুন:</p>
+              <input value={result.shareUrl} readOnly />
+              <div className="row" style={{ marginTop: "0.7rem" }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => navigator.clipboard.writeText(result.shareUrl)}
+                >
+                  লিংক কপি
+                </button>
+                <Link className="btn btn-primary" href={`/created/${result.sessionId}`}>
+                  ড্যাশবোর্ডে যান
+                </Link>
+              </div>
+            </div>
+          )}
+        </article>
+
+        <article className="panel">
+          <h3>কিভাবে কাজ করে?</h3>
+          <div className="info-list">
+            <div className="info-item">১) মোট অ্যামাউন্ট দিন (যেমন ১০০০ টাকা)</div>
+            <div className="info-item">২) মোট মানুষ দিন (যেমন ৫ জন)</div>
+            <div className="info-item">
+              ৩) সিস্টেম র‌্যান্ডম ভাগ করবে, কিন্তু মোট যোগফল ঠিক থাকবে
+            </div>
+            <div className="info-item">৪) প্রতিটি ব্যক্তি স্পিন করে একটি ইউনিক সালামি পাবে</div>
+            <div className="info-item">৫) কার্ড ডাউনলোড/শেয়ার করে ভাইরাল করুন</div>
           </div>
-          <div className="glass-card p-6 text-center">
-            <div className="text-4xl mb-3">🔗</div>
-            <h4 className="font-bold text-gold-300 mb-2">২। লিংক শেয়ার করুন</h4>
-            <p className="text-sm text-emerald-200">বন্ধু ও পরিবারে লিংক পাঠান</p>
-          </div>
-          <div className="glass-card p-6 text-center">
-            <div className="text-4xl mb-3">🎡</div>
-            <h4 className="font-bold text-gold-300 mb-2">৩। স্পিন করে জিতুন</h4>
-            <p className="text-sm text-emerald-200">হুইল ঘুরান এবং সালামি জিতুন!</p>
-          </div>
-        </div>
-      </div>
+
+          <p style={{ marginTop: "1rem", color: "#5c6677" }}>
+            উদাহরণ: ১০০০ টাকা, ৫ জন হলে ফল হতে পারে ১০০, ৫০০, ৩০০, ৯০, ১০।
+          </p>
+        </article>
+      </section>
     </main>
   );
 }

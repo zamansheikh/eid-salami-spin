@@ -1,35 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import Claim from '@/models/Claim';
-import Session from '@/models/Session';
+import { NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb";
+import { ClaimModel } from "@/models/Claim";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ claimId: string }> }
-) {
+export const runtime = "nodejs";
+
+type Context = {
+  params: Promise<{ claimId: string }>;
+};
+
+export async function GET(_request: Request, context: Context) {
   try {
-    await dbConnect();
-    const { claimId } = await params;
+    await connectToDatabase();
+    const { claimId } = await context.params;
 
-    const claim = await Claim.findOne({ claimId });
+    const claim = await ClaimModel.findOne({ claimId }).lean();
 
     if (!claim) {
-      return NextResponse.json({ error: 'তথ্য পাওয়া যায়নি' }, { status: 404 });
+      return NextResponse.json(
+        { message: "এই সালামি কার্ড পাওয়া যায়নি।" },
+        { status: 404 }
+      );
     }
 
-    const session = await Session.findOne({ sessionId: claim.sessionId });
-
-    return NextResponse.json({
-      claimId: claim.claimId,
-      sessionId: claim.sessionId,
-      amount: claim.amount,
-      name: claim.name,
-      claimedAt: claim.claimedAt,
-      creatorName: session?.creatorName || '',
-      totalAmount: session?.totalAmount || 0,
-    });
+    return NextResponse.json(claim);
   } catch (error) {
-    console.error('Claim fetch error:', error);
-    return NextResponse.json({ error: 'সার্ভার ত্রুটি' }, { status: 500 });
+    return NextResponse.json(
+      {
+        message: "কার্ড লোড করা যায়নি।",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }

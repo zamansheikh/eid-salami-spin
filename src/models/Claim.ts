@@ -1,21 +1,16 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import { Schema, model, models, type InferSchemaType } from "mongoose";
 
-export interface IClaim extends Document {
-  claimId: string;
-  sessionId: string;
-  amount: number;
-  name: string;
-  claimedAt: Date;
-  slotIndex: number;
-}
+const claimSchema = new Schema(
+  {
+    claimId: { type: String, required: true, unique: true, index: true },
+    sessionId: { type: String, required: true, index: true },
+    organizerName: { type: String, required: true },
+    recipientName: { type: String, required: true },
+    amount: { type: Number, required: true, min: 1 },
+  },
+  { timestamps: true }
+);
 
-const ClaimSchema = new Schema<IClaim>({
-  claimId: { type: String, required: true, unique: true, index: true },
-  sessionId: { type: String, required: true, index: true },
-  amount: { type: Number, required: true },
-  name: { type: String, required: true },
-  claimedAt: { type: Date, default: Date.now },
-  slotIndex: { type: Number, required: true },
-});
+export type ClaimDocument = InferSchemaType<typeof claimSchema>;
 
-export default mongoose.models.Claim || mongoose.model<IClaim>('Claim', ClaimSchema);
+export const ClaimModel = models.Claim || model("Claim", claimSchema, "claims");

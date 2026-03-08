@@ -1,33 +1,36 @@
 import type { Metadata } from "next";
+import { Aref_Ruqaa_Ink, Hind_Siliguri } from "next/font/google";
 import "./globals.css";
 
+const arefRuqaaInk = Aref_Ruqaa_Ink({
+	variable: "--font-display",
+	subsets: ["arabic"],
+	weight: ["400", "700"],
+});
+
+const hindSiliguri = Hind_Siliguri({
+	variable: "--font-bangla",
+	subsets: ["bengali", "latin"],
+	weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
-  title: "ঈদ সালামি 🌙 | Eid Salami",
-  description: "ঈদের আনন্দে প্রিয়জনদের সালামি দিন! স্পিন করুন, সালামি জিতুন, এবং ভাগ করুন! 🎉",
-  openGraph: {
-    title: "ঈদ সালামি 🌙",
-    description: "ঈদের আনন্দে প্রিয়জনদের সালামি দিন! স্পিন করুন এবং সালামি জিতুন! 🎉",
-    type: "website",
-  },
+	title: "ঈদ সালামি | Eid Salami Wheel",
+	description:
+		"ঈদের সালামি সুন্দরভাবে ভাগ করুন, স্পিন করে জিতুন, কার্ড শেয়ার করুন।",
 };
 
 export default function RootLayout({
-  children,
+	children,
 }: Readonly<{
-  children: React.ReactNode;
+	children: React.ReactNode;
 }>) {
-  return (
-    <html lang="bn">
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="antialiased">
-        <div className="islamic-pattern" />
-        {children}
-      </body>
-    </html>
-  );
+	return (
+		<html lang="bn">
+			<body className={`${arefRuqaaInk.variable} ${hindSiliguri.variable}`}>
+				{children}
+			</body>
+		</html>
+	);
 }
+

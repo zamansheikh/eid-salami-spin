@@ -1,201 +1,146 @@
-'use client';
+"use client";
 
-import { useEffect, useState, use } from 'react';
-import QRCode from 'qrcode';
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 
-interface SessionData {
+type ClaimSummary = {
+  claimId: string;
+  recipientName: string;
+  amount: number;
+  claimedAt: string;
+};
+
+type SessionResponse = {
   sessionId: string;
-  creatorName: string;
+  organizerName: string;
   totalAmount: number;
   peopleCount: number;
-  claimedCount: number;
-  remaining: number;
+  remainingAmount: number;
+  remainingSlots: number;
+  claims: ClaimSummary[];
+  message?: string;
+};
+
+function bnNumber(value: number) {
+  return new Intl.NumberFormat("bn-BD").format(value);
 }
 
-export default function CreatedPage({ params }: { params: Promise<{ sessionId: string }> }) {
-  const { sessionId } = use(params);
-  const [session, setSession] = useState<SessionData | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const shareUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/s/${sessionId}`
-    : '';
+export default function CreatedPage({
+  params,
+}: {
+  params: Promise<{ sessionId: string }>;
+}) {
+  const [sessionId, setSessionId] = useState("");
+  const [session, setSession] = useState<SessionResponse | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchSession = async () => {
-      try {
-        const res = await fetch(`/api/sessions/${sessionId}`);
-        const data = await res.json();
-        if (!data.error) {
-          setSession(data);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+    params.then((value) => setSessionId(value.sessionId));
+  }, [params]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+
+    let intervalRef: ReturnType<typeof setInterval> | undefined;
+
+    const load = async () => {
+      const response = await fetch(`/api/sessions/${sessionId}`, { cache: "no-store" });
+      const data = (await response.json()) as SessionResponse;
+      if (!response.ok) {
+        setError(data.message || "ডেটা আনা যায়নি");
+        return;
       }
+
+      setSession(data);
+      setError("");
     };
 
-    fetchSession();
+    load();
+    intervalRef = setInterval(load, 3500);
+
+    return () => {
+      if (intervalRef) {
+        clearInterval(intervalRef);
+      }
+    };
   }, [sessionId]);
 
-  useEffect(() => {
-    if (shareUrl) {
-      QRCode.toDataURL(shareUrl, {
-        width: 200,
-        margin: 2,
-        color: { dark: '#064e3b', light: '#ffffff' },
-      }).then(setQrDataUrl);
-    }
-  }, [shareUrl]);
+  const shareUrl = useMemo(() => {
+    if (!sessionId || typeof window === "undefined") return "";
+    return `${window.location.origin}/s/${sessionId}`;
+  }, [sessionId]);
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback
-      const textArea = document.createElement('textarea');
-      textArea.value = shareUrl;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const shareOnWhatsApp = () => {
-    const text = `🌙 ঈদ মোবারক! 🎉\n\n${session?.creatorName} আপনার জন্য ঈদ সালামি রেখেছেন! 🎁\n\nস্পিন করে আপনার সালামি জিতে নিন! 🎡\n\n👉 ${shareUrl}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-  };
-
-  const shareOnFacebook = () => {
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
-  };
-
-  if (loading) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl animate-float moon-glow mb-4">🌙</div>
-          <p className="text-xl text-gold-300">লোড হচ্ছে...</p>
-        </div>
-      </main>
-    );
-  }
-
-  if (!session) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="text-center glass-card p-10">
-          <div className="text-6xl mb-4">😔</div>
-          <h2 className="text-2xl font-bold text-gold-300 mb-2">সেশন পাওয়া যায়নি</h2>
-          <a href="/" className="btn-gold inline-block mt-4">🏠 হোমে যান</a>
-        </div>
-      </main>
-    );
+  if (!sessionId) {
+    return <main className="main-wrap">লোড হচ্ছে...</main>;
   }
 
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center px-4 py-10 overflow-hidden">
-      {/* Decorations */}
-      <div className="absolute top-10 left-10 text-5xl animate-float moon-glow opacity-50 select-none">🌙</div>
-      <div className="absolute top-16 right-12 text-3xl animate-float opacity-30 select-none" style={{ animationDelay: '1s' }}>⭐</div>
-      <div className="absolute bottom-20 right-20 text-4xl animate-float moon-glow opacity-40 select-none" style={{ animationDelay: '0.5s' }}>🕌</div>
+    <main className="main-wrap">
+      <div className="hero-badge">📊 Creator Dashboard</div>
+      <h1 className="hero-title" style={{ fontSize: "clamp(1.8rem,5vw,3rem)" }}>
+        সালামি ড্যাশবোর্ড
+      </h1>
 
-      <div className="relative z-10 w-full max-w-lg animate-fadeInUp">
-        {/* Success header */}
-        <div className="text-center mb-8">
-          <div className="text-6xl mb-3 animate-scaleIn">🎉</div>
-          <h1 className="text-3xl font-bold text-gold-300 mb-2">সালামি তৈরি হয়েছে!</h1>
-          <p className="text-emerald-200">এখন নিচের লিংক শেয়ার করুন</p>
-        </div>
-
-        {/* Session Info Card */}
-        <div className="glass-card p-6 mb-6">
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div>
-              <p className="text-sm text-emerald-300">মোট সালামি</p>
-              <p className="text-3xl font-bold text-gold-300">৳{session.totalAmount}</p>
-            </div>
-            <div>
-              <p className="text-sm text-emerald-300">জন সংখ্যা</p>
-              <p className="text-3xl font-bold text-gold-300">{session.peopleCount} জন</p>
-            </div>
-          </div>
-          <div className="text-center mt-4 pt-4 border-t border-white/10">
-            <p className="text-sm text-emerald-300">তৈরি করেছেন</p>
-            <p className="text-lg font-semibold text-gold-200">{session.creatorName}</p>
-          </div>
-        </div>
-
-        {/* Share Link */}
-        <div className="glass-card p-6 mb-6">
-          <h3 className="text-lg font-bold text-gold-300 mb-3 text-center">🔗 শেয়ার লিংক</h3>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 bg-emerald-900/50 rounded-xl px-4 py-3 text-sm text-emerald-100 overflow-hidden">
-              <p className="truncate">{shareUrl}</p>
-            </div>
+      <section className="grid-2">
+        <article className="panel">
+          <h2>শেয়ার লিংক</h2>
+          <input value={shareUrl} readOnly />
+          <div className="row" style={{ marginTop: "0.8rem" }}>
             <button
-              onClick={copyLink}
-              className="btn-gold !px-4 !py-3 text-sm whitespace-nowrap"
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => navigator.clipboard.writeText(shareUrl)}
             >
-              {copied ? '✅ কপি হয়েছে' : '📋 কপি'}
+              কপি লিংক
             </button>
+            <Link href={`/s/${sessionId}`} className="btn btn-primary">
+              স্পিন পেইজ দেখুন
+            </Link>
           </div>
-        </div>
+          <p className="status">{error}</p>
+        </article>
 
-        {/* QR Code */}
-        {qrDataUrl && (
-          <div className="glass-card p-6 mb-6 text-center">
-            <h3 className="text-lg font-bold text-gold-300 mb-3">📱 QR কোড</h3>
-            <div className="inline-block bg-white rounded-xl p-3">
-              <img src={qrDataUrl} alt="QR Code" className="w-48 h-48" />
+        <article className="panel">
+          <h2>বর্তমান অবস্থা</h2>
+          {!session ? (
+            <p>লোড হচ্ছে...</p>
+          ) : (
+            <div className="info-list">
+              <div className="info-item">
+                আয়োজক: <b>{session.organizerName}</b>
+              </div>
+              <div className="info-item">
+                মোট টার্গেট: <b>{bnNumber(session.totalAmount)} টাকা</b>
+              </div>
+              <div className="info-item">
+                বাকি টাকা: <b>{bnNumber(session.remainingAmount)} টাকা</b>
+              </div>
+              <div className="info-item">
+                বাকি মানুষ: <b>{bnNumber(session.remainingSlots)} জন</b>
+              </div>
             </div>
-            <p className="text-xs text-emerald-300 mt-2">QR স্ক্যান করে সরাসরি সালামি পেজে যান</p>
+          )}
+        </article>
+      </section>
+
+      <section className="panel" style={{ marginTop: "1.2rem" }}>
+        <h3>যারা ইতিমধ্যে সালামি জিতেছে</h3>
+        {!session || session.claims.length === 0 ? (
+          <p>এখনও কেউ স্পিন করেনি।</p>
+        ) : (
+          <div className="info-list">
+            {session.claims
+              .slice()
+              .reverse()
+              .map((claim) => (
+                <div className="info-item" key={claim.claimId}>
+                  <b>{claim.recipientName}</b> পেয়েছে <b>{bnNumber(claim.amount)} টাকা</b> •{" "}
+                  <Link href={`/card/${claim.claimId}`}>কার্ড দেখুন</Link>
+                </div>
+              ))}
           </div>
         )}
-
-        {/* Share Buttons */}
-        <div className="glass-card p-6 mb-6">
-          <h3 className="text-lg font-bold text-gold-300 mb-4 text-center">📣 শেয়ার করুন</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={shareOnWhatsApp}
-              className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition-all hover:scale-105"
-            >
-              <span className="text-xl">💬</span>
-              WhatsApp
-            </button>
-            <button
-              onClick={shareOnFacebook}
-              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-all hover:scale-105"
-            >
-              <span className="text-xl">📘</span>
-              Facebook
-            </button>
-          </div>
-        </div>
-
-        {/* Status */}
-        <div className="glass-card p-4 text-center">
-          <p className="text-sm text-emerald-300">
-            ⏳ {session.remaining} জন এখনো সালামি নেয়নি | {session.claimedCount} জন নিয়েছে
-          </p>
-        </div>
-
-        {/* Back */}
-        <div className="text-center mt-6">
-          <a href="/" className="text-gold-300 hover:text-gold-200 underline text-sm">
-            ← নতুন সালামি তৈরি করুন
-          </a>
-        </div>
-      </div>
+      </section>
     </main>
   );
 }

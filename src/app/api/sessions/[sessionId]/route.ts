@@ -1,32 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import Session from '@/models/Session';
+import { NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb";
+import { SessionModel } from "@/models/Session";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ sessionId: string }> }
-) {
+export const runtime = "nodejs";
+
+type Context = {
+  params: Promise<{ sessionId: string }>;
+};
+
+export async function GET(_request: Request, context: Context) {
   try {
-    await dbConnect();
-    const { sessionId } = await params;
+    await connectToDatabase();
+    const { sessionId } = await context.params;
 
-    const session = await Session.findOne({ sessionId });
+    const session = await SessionModel.findOne({ sessionId }).lean();
 
     if (!session) {
-      return NextResponse.json({ error: 'সেশন পাওয়া যায়নি' }, { status: 404 });
+      return NextResponse.json(
+        { message: "এই সালামি সেশনটি পাওয়া যায়নি।" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({
       sessionId: session.sessionId,
-      creatorName: session.creatorName,
+      organizerName: session.organizerName,
       totalAmount: session.totalAmount,
       peopleCount: session.peopleCount,
-      claimedCount: session.claimedCount,
-      remaining: session.peopleCount - session.claimedCount,
+      remainingAmount: session.remainingAmount,
+      remainingSlots: session.remainingSlots,
+      claims: session.claims,
       createdAt: session.createdAt,
     });
   } catch (error) {
-    console.error('Session fetch error:', error);
-    return NextResponse.json({ error: 'সার্ভার ত্রুটি' }, { status: 500 });
+    return NextResponse.json(
+      {
+        message: "সেশন তথ্য লোড করা যায়নি।",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }
