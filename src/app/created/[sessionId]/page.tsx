@@ -41,13 +41,11 @@ export default function CreatedPage({
   useEffect(() => {
     if (!sessionId) return;
 
-    let intervalRef: ReturnType<typeof setInterval> | undefined;
-
     const load = async () => {
       const response = await fetch(`/api/sessions/${sessionId}`, { cache: "no-store" });
       const data = (await response.json()) as SessionResponse;
       if (!response.ok) {
-        setError(data.message || "ডেটা আনা যায়নি");
+        setError(data.message || "ডেটা আনা যায়নি");
         return;
       }
 
@@ -56,13 +54,9 @@ export default function CreatedPage({
     };
 
     load();
-    intervalRef = setInterval(load, 3500);
+    const intervalRef = setInterval(load, 3500);
 
-    return () => {
-      if (intervalRef) {
-        clearInterval(intervalRef);
-      }
-    };
+    return () => clearInterval(intervalRef);
   }, [sessionId]);
 
   const shareUrl = useMemo(() => {
@@ -81,10 +75,12 @@ export default function CreatedPage({
         সালামি ড্যাশবোর্ড
       </h1>
 
+      <div className="ornament">☪</div>
+
       <section className="grid-2">
-        <article className="panel">
-          <h2>শেয়ার লিংক</h2>
-          <input value={shareUrl} readOnly />
+        <article className="panel glow-pulse">
+          <h2>শেয়ার লিংক</h2>
+          <input value={shareUrl} readOnly style={{ width: "100%" }} />
           <div className="row" style={{ marginTop: "0.8rem" }}>
             <button
               type="button"
@@ -123,8 +119,8 @@ export default function CreatedPage({
         </article>
       </section>
 
-      <section className="panel" style={{ marginTop: "1.2rem" }}>
-        <h3>যারা ইতিমধ্যে সালামি জিতেছে</h3>
+      <section className="panel sparkle" style={{ marginTop: "1.5rem" }}>
+        <h3>🏆 যারা ইতিমধ্যে সালামি জিতেছে</h3>
         {!session || session.claims.length === 0 ? (
           <p>এখনও কেউ স্পিন করেনি।</p>
         ) : (

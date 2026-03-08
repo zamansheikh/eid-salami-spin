@@ -1,6 +1,7 @@
 "use client";
 
 import { toPng } from "html-to-image";
+import Image from "next/image";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -38,8 +39,8 @@ export default function CardClient({
       margin: 1,
       width: 108,
       color: {
-        dark: "#0b7a6e",
-        light: "#ffffff",
+        dark: "#d4a853",
+        light: "#064e3b",
       },
     }).then((url) => setQrDataUrl(url));
   }, [cardUrl]);
@@ -49,7 +50,7 @@ export default function CardClient({
 
     const image = await toPng(cardRef.current, {
       cacheBust: true,
-      backgroundColor: "#0b7a6e",
+      backgroundColor: "#064e3b",
       pixelRatio: 2,
     });
 
@@ -82,8 +83,11 @@ export default function CardClient({
         আপনার ঈদ সালামি কার্ড
       </h1>
 
+      <div className="ornament">☪</div>
+
       <div ref={cardRef} className="card-shot sparkle">
-        <p className="card-title">Eid Mubarak • সালামি বিজয়ী</p>
+        <div className="card-top-border" />
+        <p className="card-title">🌙 Eid Mubarak • সালামি বিজয়ী</p>
         <div className="card-main">
           <p style={{ margin: 0 }}>প্রাপক</p>
           <h2 style={{ marginTop: "0.25rem", marginBottom: 0 }}>{recipientName}</h2>
@@ -100,8 +104,9 @@ export default function CardClient({
             <div>Powered by Eid Salami Wheel</div>
             <div>Card ID: {claimId}</div>
           </div>
-          {qrDataUrl ? <img src={qrDataUrl} alt="কার্ড কিউআর" width={88} height={88} /> : null}
+          {qrDataUrl ? <Image src={qrDataUrl} alt="কার্ড কিউআর" width={88} height={88} unoptimized style={{ borderRadius: 8 }} /> : null}
         </div>
+        <div className="card-bottom-border" />
       </div>
 
       <div className="row" style={{ justifyContent: "center", marginTop: "1rem" }}>
