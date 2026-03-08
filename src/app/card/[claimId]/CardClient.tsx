@@ -56,22 +56,38 @@ export default function CardClient({
     if (!cardRef.current) return;
 
     const el = cardRef.current;
-    const image = await toPng(el, {
-      cacheBust: true,
-      pixelRatio: 2,
-      width: el.offsetWidth,
-      height: el.offsetHeight,
-      style: {
-        // ensure nothing is clipped during capture
-        overflow: "hidden",
-        transform: "none",
-      },
-    });
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
 
-    const anchor = document.createElement("a");
-    anchor.href = image;
-    anchor.download = `eid-salami-${claimId}.png`;
-    anchor.click();
+    // Clone and pin to top-left so html-to-image captures it without margin offsets
+    const clone = el.cloneNode(true) as HTMLElement;
+    clone.style.cssText = [
+      "position:fixed",
+      "top:0",
+      "left:0",
+      "margin:0",
+      `width:${w}px`,
+      "border-radius:0",
+      "z-index:-9999",
+      "opacity:1",
+    ].join(";");
+    document.body.appendChild(clone);
+
+    try {
+      const image = await toPng(clone, {
+        cacheBust: true,
+        pixelRatio: 2,
+        width: w,
+        height: h,
+      });
+
+      const anchor = document.createElement("a");
+      anchor.href = image;
+      anchor.download = `eid-salami-${claimId}.png`;
+      anchor.click();
+    } finally {
+      document.body.removeChild(clone);
+    }
   };
 
   const shareCard = async () => {
