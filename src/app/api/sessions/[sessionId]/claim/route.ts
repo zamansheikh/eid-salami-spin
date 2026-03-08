@@ -8,6 +8,7 @@ import { SessionModel } from "@/models/Session";
 export const runtime = "nodejs";
 
 const uid = new ShortUniqueId({ length: 10 });
+const tokenUid = new ShortUniqueId({ length: 24 });
 
 type Context = {
   params: Promise<{ sessionId: string }>;
@@ -47,6 +48,7 @@ export async function POST(request: Request, context: Context) {
     const randomIndex = Math.floor(Math.random() * session.pendingAmounts.length);
     const [amount] = session.pendingAmounts.splice(randomIndex, 1);
     const claimId = uid.rnd();
+    const claimToken = tokenUid.rnd();
     const now = new Date();
 
     session.remainingAmount -= amount;
@@ -62,6 +64,7 @@ export async function POST(request: Request, context: Context) {
 
     await ClaimModel.create({
       claimId,
+      claimToken,
       sessionId,
       organizerName: session.organizerName,
       recipientName,
@@ -72,6 +75,7 @@ export async function POST(request: Request, context: Context) {
 
     return NextResponse.json({
       claimId,
+      claimToken,
       recipientName,
       amount,
       cardUrl: `${baseUrl}/card/${claimId}`,

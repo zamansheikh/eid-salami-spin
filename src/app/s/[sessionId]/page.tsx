@@ -16,6 +16,7 @@ type SessionResponse = {
 
 type ClaimResponse = {
   claimId: string;
+  claimToken: string;
   recipientName: string;
   amount: number;
   cardUrl: string;
@@ -24,6 +25,7 @@ type ClaimResponse = {
 
 type SpunEntry = {
   claimId: string;
+  claimToken: string;
   recipientName: string;
   amount: number;
 };
@@ -130,7 +132,7 @@ function CongratsModal({
 
           {/* CTA — open gift card */}
           <Link
-            href={`/card/${result.claimId}`}
+            href={`/card/${result.claimId}?t=${result.claimToken}`}
             className="btn btn-primary"
             style={{ width: "100%", fontSize: "1.1rem", padding: "1rem", marginBottom: "0.7rem" }}
           >
@@ -227,14 +229,19 @@ export default function SpinPage({
 
         setSpunData(sessionId, {
           claimId: claimData.claimId,
+          claimToken: claimData.claimToken,
           recipientName: claimData.recipientName,
           amount: claimData.amount,
         });
         setAlreadySpun({
           claimId: claimData.claimId,
+          claimToken: claimData.claimToken,
           recipientName: claimData.recipientName,
           amount: claimData.amount,
         });
+
+        // Persist token so CardClient can verify ownership across page loads
+        localStorage.setItem(`eid_claim_token_${claimData.claimId}`, claimData.claimToken);
 
         confetti({ particleCount: 200, spread: 130, origin: { y: 0.55 } });
         setTimeout(() => confetti({ particleCount: 100, angle: 60, spread: 80, origin: { x: 0 } }), 400);
@@ -268,7 +275,7 @@ export default function SpinPage({
             <p><b>{alreadySpun.recipientName}</b>, আপনার সালামি ছিল:</p>
             <div className="result-amount">৳ {bnNumber(alreadySpun.amount)}</div>
             <div className="row" style={{ justifyContent: "center", marginTop: "1rem" }}>
-              <Link href={`/card/${alreadySpun.claimId}`} className="btn btn-primary">
+              <Link href={`/card/${alreadySpun.claimId}?t=${alreadySpun.claimToken}`} className="btn btn-primary">
                 🎁 আপনার কার্ড দেখুন
               </Link>
             </div>

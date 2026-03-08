@@ -8,6 +8,11 @@ type ClaimSummary = {
   recipientName: string;
   amount: number;
   claimedAt: string;
+  paymentRequest?: {
+    method: string;
+    number: string;
+    requestedAt: string;
+  } | null;
 };
 
 type SessionResponse = {
@@ -61,6 +66,9 @@ export default function CreatedPage({
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [error, setError] = useState("");
   const [spinLinkCopied, setSpinLinkCopied] = useState(false);
+  const [dashLinkCopied, setDashLinkCopied] = useState(false);
+  const [claimsPage, setClaimsPage] = useState(1);
+  const CLAIMS_PER_PAGE = 10;
 
   // Budget editing
   const [editingBudget, setEditingBudget] = useState(false);
@@ -98,10 +106,21 @@ export default function CreatedPage({
     return `${window.location.origin}/s/${sessionId}`;
   }, [sessionId]);
 
+  const dashboardUrl = useMemo(() => {
+    if (!sessionId || typeof window === "undefined") return "";
+    return `${window.location.origin}/created/${sessionId}`;
+  }, [sessionId]);
+
   const copySpinLink = () => {
     navigator.clipboard.writeText(shareUrl);
     setSpinLinkCopied(true);
     setTimeout(() => setSpinLinkCopied(false), 2500);
+  };
+
+  const copyDashLink = () => {
+    navigator.clipboard.writeText(dashboardUrl);
+    setDashLinkCopied(true);
+    setTimeout(() => setDashLinkCopied(false), 2500);
   };
 
   const saveBudget = async () => {
@@ -174,22 +193,7 @@ export default function CreatedPage({
         </div>
       </div>
 
-      <section className="grid-2">
-        <article className="panel glow-pulse">
-          <h2>Share Link</h2>
-          <input value={shareUrl} readOnly style={{ width: "100%" }} />
-          <div className="row" style={{ marginTop: "0.8rem" }}>
-            <button type="button" className="btn btn-secondary" onClick={copySpinLink}>
-              {spinLinkCopied ? "Copied!" : "Copy Link"}
-            </button>
-            <Link href={`/s/${sessionId}`} className="btn btn-primary">
-              View Spin Page
-            </Link>
-          </div>
-          <p className="status">{error}</p>
-        </article>
-
-        <article className="panel">
+      <article className="panel">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.6rem" }}>
             <h2 style={{ margin: 0 }}>Status</h2>
             {session && session.remainingSlots > 0 && !editingBudget && (
@@ -234,26 +238,88 @@ export default function CreatedPage({
           )}
           {budgetSuccess && <p style={{ color: "#4ade80", marginTop: "0.5rem", fontSize: "0.88rem" }}>{budgetSuccess}</p>}
         </article>
-      </section>
 
-      <section className="panel sparkle" style={{ marginTop: "1.5rem" }}>
-        <h3>Who has claimed their salami</h3>
-        {!session || session.claims.length === 0 ? (
-          <p>Nobody has spun yet.</p>
-        ) : (
-          <div className="info-list">
-            {session.claims
-              .slice()
-              .reverse()
-              .map((claim) => (
-                <div className="info-item" key={claim.claimId}>
-                  <b>{claim.recipientName}</b> received <b>{bnNumber(claim.amount)} BDT</b>{" "}
-                  <Link href={`/card/${claim.claimId}`}>View Card</Link>
+      {/* Subtle dashboard save link */}
+      <details style={{ marginTop: "1.2rem", color: "#6ee7b7" }}>
+        <summary style={{ cursor: "pointer", fontSize: "0.82rem", opacity: 0.7, userSelect: "none" }}>
+          🔖 Save dashboard link for another browser
+        </summary>
+        <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
+          <input value={dashboardUrl} readOnly style={{ flex: 1, minWidth: 0, fontSize: "0.8rem", color: "#fde68a", background: "rgba(0,0,0,0.25)", border: "1px solid rgba(52,211,153,0.25)" }} />
+          <button type="button" className="btn btn-secondary" style={{ fontSize: "0.8rem", padding: "0.35rem 0.75rem", whiteSpace: "nowrap" }} onClick={copyDashLink}>
+            {dashLinkCopied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+      </details>
+
+      {(() => {
+        const allClaims = session ? [...session.claims].reverse() : [];
+        const totalPages = Math.ceil(allClaims.length / CLAIMS_PER_PAGE);
+        const pageClaims = allClaims.slice((claimsPage - 1) * CLAIMS_PER_PAGE, claimsPage * CLAIMS_PER_PAGE);
+        return (
+          <section className="panel sparkle" style={{ marginTop: "1.5rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.6rem" }}>
+              <h3 style={{ margin: 0 }}>Who has claimed their salami</h3>
+              {allClaims.length > 0 && (
+                <span style={{ color: "#6ee7b7", fontSize: "0.8rem" }}>{allClaims.length} total</span>
+              )}
+            </div>
+            {!session || allClaims.length === 0 ? (
+              <p>Nobody has spun yet.</p>
+            ) : (
+              <>
+                <div className="info-list">
+                  {pageClaims.map((claim) => (
+                    <div key={claim.claimId} style={{ display: "flex", flexDirection: "column", gap: "0.25rem", padding: "0.5rem 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                      <div className="info-item" style={{ borderBottom: "none", padding: 0 }}>
+                        <b>{claim.recipientName}</b> received <b>{bnNumber(claim.amount)} BDT</b>{" "}
+                        <Link href={`/card/${claim.claimId}`}>View Card</Link>
+                      </div>
+                      {claim.paymentRequest?.requestedAt ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: "0.78rem", background: "rgba(212,168,83,0.15)", border: "1px solid rgba(212,168,83,0.3)", borderRadius: 8, padding: "0.2rem 0.55rem", color: "#fde68a", fontWeight: 600 }}>
+                            {claim.paymentRequest.method === "bkash" ? "bKash" : claim.paymentRequest.method === "nagad" ? "Nagad" : "Rocket"}
+                          </span>
+                          <span style={{ fontSize: "0.82rem", color: "#6ee7b7", fontWeight: 600 }}>
+                            💸 {claim.paymentRequest.number}
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: "0.76rem", color: "#6b7280", fontStyle: "italic" }}>সালামি দাবি করেনি</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-          </div>
-        )}
-      </section>
+                {totalPages > 1 && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.6rem", marginTop: "1rem" }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ fontSize: "0.8rem", padding: "0.35rem 0.8rem" }}
+                      onClick={() => setClaimsPage((p) => Math.max(1, p - 1))}
+                      disabled={claimsPage === 1}
+                    >
+                      ← Prev
+                    </button>
+                    <span style={{ color: "#6ee7b7", fontSize: "0.82rem" }}>
+                      {claimsPage} / {totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ fontSize: "0.8rem", padding: "0.35rem 0.8rem" }}
+                      onClick={() => setClaimsPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={claimsPage === totalPages}
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        );
+      })()}
     </main>
   );
 }

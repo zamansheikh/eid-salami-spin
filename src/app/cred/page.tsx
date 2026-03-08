@@ -28,6 +28,8 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [copied, setCopied] = useState("");
   const [autoLogging, setAutoLogging] = useState(true);
+  const [page, setPage] = useState(1);
+  const ROWS_PER_PAGE = 15;
 
   // Auto-login from saved PIN in localStorage on first mount
   useEffect(() => {
@@ -105,6 +107,9 @@ export default function AdminPage() {
     s.organizerName.toLowerCase().includes(search.toLowerCase()) ||
     s.sessionId.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filtered.length / ROWS_PER_PAGE);
+  const pageRows = filtered.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
 
   const baseUrl =
     typeof window !== "undefined" ? window.location.origin : "https://eid-salami-for-u.vercel.app";
@@ -236,13 +241,14 @@ export default function AdminPage() {
       {/* search */}
       <input
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         placeholder="Search by organizer name or session ID…"
         style={{ width: "100%", marginBottom: "1rem", fontSize: "0.9rem" }}
       />
 
       <p style={{ color: "#6ee7b7", fontSize: "0.82rem", marginBottom: "0.7rem" }}>
         Showing {filtered.length} of {sessions.length} sessions
+        {totalPages > 1 && ` — page ${page}/${totalPages}`}
       </p>
 
       {/* table wrapper */}
@@ -256,7 +262,7 @@ export default function AdminPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((s, idx) => {
+            {pageRows.map((s, idx) => {
               const dashUrl = `${baseUrl}/created/${s.sessionId}`;
               const spinUrl = `${baseUrl}/s/${s.sessionId}`;
               const allDone = s.remainingSlots === 0;
@@ -269,7 +275,7 @@ export default function AdminPage() {
                     background: idx % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent",
                   }}
                 >
-                  <td style={{ padding: "0.55rem 0.7rem", color: "#6ee7b7" }}>{idx + 1}</td>
+                  <td style={{ padding: "0.55rem 0.7rem", color: "#6ee7b7" }}>{(page - 1) * ROWS_PER_PAGE + idx + 1}</td>
                   <td style={{ padding: "0.55rem 0.7rem", color: "#f0fdf4", fontWeight: 600 }}>
                     {s.organizerName}
                   </td>
@@ -336,6 +342,46 @@ export default function AdminPage() {
           </p>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.6rem", marginTop: "1.2rem", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ fontSize: "0.85rem", padding: "0.4rem 0.9rem" }}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            ← Prev
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              type="button"
+              className="btn btn-secondary"
+              style={{
+                fontSize: "0.85rem",
+                padding: "0.4rem 0.75rem",
+                background: p === page ? "rgba(212,168,83,0.25)" : undefined,
+                borderColor: p === page ? "rgba(212,168,83,0.6)" : undefined,
+                color: p === page ? "#fde68a" : undefined,
+              }}
+              onClick={() => setPage(p)}
+            >
+              {p}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ fontSize: "0.85rem", padding: "0.4rem 0.9rem" }}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+          >
+            Next →
+          </button>
+        </div>
+      )}
     </main>
   );
 }

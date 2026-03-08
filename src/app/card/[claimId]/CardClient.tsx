@@ -39,6 +39,31 @@ export default function CardClient({
   const [isAndroid, setIsAndroid] = useState(false);
   const [showOpenHint, setShowOpenHint] = useState(false);
 
+  // Payment request state
+  const [paymentRequested, setPaymentRequested] = useState(false);
+  const [claimToken, setClaimToken] = useState<string | null>(null);
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [payMethod, setPayMethod] = useState<"bkash" | "nagad" | "rocket">("bkash");
+  const [payNumber, setPayNumber] = useState("");
+  const [paySubmitting, setPaySubmitting] = useState(false);
+  const [payError, setPayError] = useState("");
+
+  useEffect(() => {
+    if (localStorage.getItem(`eid_pay_req_${claimId}`)) {
+      setPaymentRequested(true);
+    }
+    // Read token from ?t= URL param first, then localStorage
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get("t");
+    if (urlToken) {
+      localStorage.setItem(`eid_claim_token_${claimId}`, urlToken);
+      setClaimToken(urlToken);
+    } else {
+      const stored = localStorage.getItem(`eid_claim_token_${claimId}`);
+      if (stored) setClaimToken(stored);
+    }
+  }, [claimId]);
+
   const cardUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
     return `${window.location.origin}/card/${claimId}`;
@@ -167,6 +192,36 @@ export default function CardClient({
     const text = `🌙 ঈদ মোবারক! আমি ঈদ সালামি পেয়েছি ৳${bnNumber(amount)}! 🎁\n\nতুমিও তোমার প্রিয়জনদের সালামি দাও: ${homeUrl}\n\nআমার কার্ড: ${cardUrl}`;
     const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(waUrl, "_blank");
+  };
+
+  const submitPayRequest = async () => {
+    setPayError("");
+    const trimmed = payNumber.trim();
+    if (!trimmed) {
+      setPayError("মোবাইল নম্বর দিন।");
+      return;
+    }
+    if (!claimToken) {
+      setPayError("আপনি এই কার্ডের বিজয়ী নর্ন।");
+      return;
+    }
+    setPaySubmitting(true);
+    try {
+      const res = await fetch(`/api/claims/${claimId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method: payMethod, number: trimmed, claimToken }),
+      });
+      const data = await res.json() as { message?: string };
+      if (!res.ok && res.status !== 409) throw new Error(data.message ?? "Error");
+      localStorage.setItem(`eid_pay_req_${claimId}`, "1");
+      setPaymentRequested(true);
+      setShowPayModal(false);
+    } catch (err) {
+      setPayError(err instanceof Error ? err.message : "কিছু একটা সমস্যা হয়েছে।");
+    } finally {
+      setPaySubmitting(false);
+    }
   };
 
   return (
@@ -316,6 +371,122 @@ export default function CardClient({
           WhatsApp এ শেয়ার
         </button>
       </div>
+
+      {/* ── Request Salami (payment request) ─────────────── */}
+      {claimToken && (
+        paymentRequested ? (
+          <div style={{
+            marginTop: "1rem",
+            padding: "0.85rem 1rem",
+            background: "linear-gradient(135deg, rgba(6,78,59,0.7), rgba(4,120,87,0.5))",
+            border: "1px solid rgba(52,211,153,0.4)",
+            borderRadius: 12,
+            textAlign: "center",
+            color: "#6ee7b7",
+            fontWeight: 600,
+            fontSize: "0.95rem",
+          }}>
+            ✅ সালামি দাবি পাঠানো হয়েছে! অর্গানাইজার শীঘ্রই পাঠাবেন।
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ marginTop: "1rem", width: "100%", fontSize: "1rem" }}
+            onClick={() => setShowPayModal(true)}
+          >
+            💸 সালামি দাবি করুন
+          </button>
+        )
+      )}
+
+      {/* ── Payment request modal ─────────────────────────── */}
+      {showPayModal && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(0,0,0,0.75)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "1rem",
+        }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowPayModal(false); }}
+        >
+          <div style={{
+            background: "linear-gradient(135deg,#071f1b,#0a2e28)",
+            border: "1px solid rgba(212,168,83,0.35)",
+            borderRadius: 20,
+            padding: "1.6rem",
+            width: "min(420px,100%)",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+          }}>
+            <h3 style={{ color: "#fde68a", margin: "0 0 0.3rem", fontSize: "1.2rem" }}>
+              💸 সালামি দাবি করুন
+            </h3>
+            <p style={{ color: "#6ee7b7", fontSize: "0.85rem", margin: "0 0 1.2rem" }}>
+              কোন মাধ্যমে টাকা পাঠাতে হবে তা জানান।
+            </p>
+
+            {/* Method selector */}
+            <p style={{ color: "#d4a853", fontWeight: 600, fontSize: "0.88rem", margin: "0 0 0.5rem" }}>পেমেন্ট মাধ্যম</p>
+            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+              {(["bkash", "nagad", "rocket"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setPayMethod(m)}
+                  style={{
+                    flex: 1,
+                    padding: "0.55rem",
+                    borderRadius: 10,
+                    border: payMethod === m ? "2px solid #fbbf24" : "1px solid rgba(212,168,83,0.3)",
+                    background: payMethod === m ? "rgba(212,168,83,0.18)" : "rgba(255,255,255,0.04)",
+                    color: payMethod === m ? "#fde68a" : "#9ca3af",
+                    fontWeight: payMethod === m ? 700 : 400,
+                    fontSize: "0.9rem",
+                    cursor: "pointer",
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {m === "bkash" ? "bKash" : m === "nagad" ? "Nagad" : "Rocket"}
+                </button>
+              ))}
+            </div>
+
+            {/* Phone number */}
+            <p style={{ color: "#d4a853", fontWeight: 600, fontSize: "0.88rem", margin: "0 0 0.4rem" }}>মোবাইল নম্বর</p>
+            <input
+              type="tel"
+              placeholder="01XXXXXXXXX"
+              value={payNumber}
+              onChange={(e) => setPayNumber(e.target.value)}
+              style={{ width: "100%", marginBottom: "1rem", fontSize: "1rem", padding: "0.6rem 0.75rem", borderRadius: 10 }}
+            />
+
+            {payError && (
+              <p style={{ color: "#fca5a5", fontSize: "0.85rem", margin: "-0.5rem 0 0.8rem" }}>{payError}</p>
+            )}
+
+            <div style={{ display: "flex", gap: "0.6rem" }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ flex: 1, fontSize: "0.95rem" }}
+                onClick={submitPayRequest}
+                disabled={paySubmitting}
+              >
+                {paySubmitting ? "পাঠানো হচ্ছে..." : "✅ পাঠান"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ fontSize: "0.95rem" }}
+                onClick={() => { setShowPayModal(false); setPayError(""); }}
+              >
+                বাতিল
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Viral CTA ────────────────────────────────────── */}
       <div className="panel glow-pulse" style={{ marginTop: "2rem", textAlign: "center" }}>

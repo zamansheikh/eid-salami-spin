@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { SessionModel } from "@/models/Session";
+import { ClaimModel } from "@/models/Claim";
 import { generateRandomDistribution } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -23,6 +24,19 @@ export async function GET(_request: Request, context: Context) {
       );
     }
 
+    // Enrich claims with paymentRequest data from Claim collection
+    const claimIds = (session.claims ?? []).map((c: { claimId: string }) => c.claimId);
+    const fullClaims = claimIds.length
+      ? await ClaimModel.find({ claimId: { $in: claimIds } }).lean()
+      : [];
+    const payMap = Object.fromEntries(
+      fullClaims.map((c) => [c.claimId, c.paymentRequest ?? null])
+    );
+    const enrichedClaims = (session.claims ?? []).map((c: { claimId: string }) => ({
+      ...(c as object),
+      paymentRequest: payMap[c.claimId] ?? null,
+    }));
+
     return NextResponse.json({
       sessionId: session.sessionId,
       organizerName: session.organizerName,
@@ -30,7 +44,7 @@ export async function GET(_request: Request, context: Context) {
       peopleCount: session.peopleCount,
       remainingAmount: session.remainingAmount,
       remainingSlots: session.remainingSlots,
-      claims: session.claims,
+      claims: enrichedClaims,
       createdAt: session.createdAt,
     });
   } catch (error) {

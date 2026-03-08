@@ -295,6 +295,22 @@ export default function HomePage() {
           <p style={{ color: "#fca5a5", marginTop: "0.6rem", fontSize: "0.9rem" }}>{importError}</p>
         )}
       </section>
+
+      {/* Dev credit */}
+      <footer style={{ marginTop: "2.5rem", paddingBottom: "1rem", textAlign: "center" }}>
+        <p style={{ margin: 0, color: "#374151", fontSize: "0.75rem", lineHeight: 1.8 }}>
+          Developed by{" "}
+          <span style={{ color: "#4b5563", fontWeight: 600 }}>Md. Shamsuzzaman</span>
+          {" · "}
+          <a href="https://github.com/zamansheikh" target="_blank" rel="noopener noreferrer" style={{ color: "#4b5563", textDecoration: "none" }}>
+            github.com/zamansheikh
+          </a>
+          {" · "}
+          <a href="https://facebook.com/zamansheikh.404" target="_blank" rel="noopener noreferrer" style={{ color: "#4b5563", textDecoration: "none" }}>
+            facebook.com/zamansheikh.404
+          </a>
+        </p>
+      </footer>
     </main>
   );
 }
