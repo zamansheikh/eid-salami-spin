@@ -437,84 +437,210 @@ input[readOnly] {
   background-clip: text;
 }
 
-/* ── Gift card ───────────────────────────────────────────────── */
-.card-shot {
-  width: min(560px, 96vw);
+/* ── Gift card v2 ────────────────────────────────────────────── */
+.card-v2 {
+  width: min(480px, 94vw);
   margin: 0 auto;
-  border-radius: 24px;
-  padding: 1.6rem;
-  background:
-    radial-gradient(circle at 15% 10%, rgba(212, 168, 83, 0.15), transparent 35%),
-    radial-gradient(circle at 85% 90%, rgba(212, 168, 83, 0.1), transparent 30%),
-    linear-gradient(155deg, var(--emerald-900), var(--emerald-800) 50%, var(--emerald-900));
-  color: #f8fafc;
-  border: 2px solid rgba(212, 168, 83, 0.35);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
-  position: relative;
+  border-radius: 28px;
   overflow: hidden;
+  background: linear-gradient(170deg, #052a22 0%, #0a4a3f 35%, #073d33 100%);
+  border: 2px solid rgba(212, 168, 83, 0.4);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(212, 168, 83, 0.08);
+  color: #f0fdf4;
+  position: relative;
 }
 
-.card-shot::before {
+.card-v2::before {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.04;
+  opacity: 0.03;
   background-image:
-    radial-gradient(circle, var(--gold-400) 1px, transparent 1px);
-  background-size: 24px 24px;
+    radial-gradient(circle, var(--gold-400) 1px, transparent 1px),
+    radial-gradient(circle, var(--gold-400) 0.5px, transparent 0.5px);
+  background-size: 32px 32px, 16px 16px;
+  background-position: 0 0, 8px 8px;
   pointer-events: none;
 }
 
-.card-top-border {
-  height: 4px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--gold-500), var(--gold-300), var(--gold-500));
-  margin-bottom: 1rem;
+.card-v2-header {
+  position: relative;
+  text-align: center;
+  padding: 2rem 1.5rem 1rem;
+  background: linear-gradient(180deg, rgba(212, 168, 83, 0.12), transparent);
+  border-bottom: 1px solid rgba(212, 168, 83, 0.15);
 }
 
-.card-title {
+.card-v2-mosque {
+  font-size: 2.4rem;
+  opacity: 0.25;
+  position: absolute;
+  top: 12px;
+  left: 20px;
+}
+
+.card-v2-moon {
+  font-size: 2rem;
+  position: absolute;
+  top: 14px;
+  right: 20px;
+  animation: float 4s ease-in-out infinite;
+}
+
+.card-v2-subtitle {
   margin: 0;
-  font-size: 1.2rem;
-  color: var(--gold-200);
-  position: relative;
-}
-
-.card-main {
-  margin-top: 1rem;
-  padding: 1.2rem;
-  border-radius: 18px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(212, 168, 83, 0.15);
-  position: relative;
-}
-
-.card-amount {
-  margin: 0.3rem 0;
-  font-size: 2.6rem;
-  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
   color: var(--gold-300);
+  opacity: 0.85;
 }
 
-.card-footer {
-  margin-top: 1.2rem;
+.card-v2-heading {
+  margin: 0.2rem 0 0;
+  font-size: 1.6rem;
+  font-family: var(--font-display), serif;
+  background: linear-gradient(135deg, var(--gold-200), var(--gold-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card-v2-amount-wrap {
+  text-align: center;
+  padding: 1.4rem 1rem;
+  position: relative;
+}
+
+.card-v2-amount-wrap::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  width: 180px;
+  height: 180px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(212, 168, 83, 0.12), transparent 70%);
+  pointer-events: none;
+}
+
+.card-v2-currency {
+  font-size: 2rem;
+  color: var(--gold-300);
+  font-weight: 600;
+  vertical-align: top;
+  line-height: 1;
+  position: relative;
+}
+
+.card-v2-amount {
+  font-size: clamp(3rem, 10vw, 4.5rem);
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--gold-200), var(--gold-300), var(--gold-100));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+  line-height: 1;
+}
+
+.card-v2-details {
+  padding: 0 1.5rem;
+  position: relative;
+}
+
+.card-v2-row {
   display: flex;
   justify-content: space-between;
-  align-items: end;
-  gap: 1rem;
+  align-items: center;
+  padding: 0.7rem 0;
+}
+
+.card-v2-label {
+  font-size: 0.88rem;
+  color: var(--emerald-300);
+  opacity: 0.8;
+}
+
+.card-v2-value {
+  font-weight: 600;
+  color: var(--gold-100);
+}
+
+.card-v2-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.2), transparent);
+}
+
+.card-v2-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 1rem 1.5rem 1.2rem;
+  margin-top: 0.6rem;
+  border-top: 1px solid rgba(212, 168, 83, 0.12);
+  background: rgba(0, 0, 0, 0.15);
   position: relative;
 }
 
-.card-credit {
-  opacity: 0.85;
-  font-size: 0.85rem;
+.card-v2-brand {
   color: var(--emerald-200);
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
 
-.card-bottom-border {
-  height: 4px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--gold-500), var(--gold-300), var(--gold-500));
+.card-v2-qr {
+  flex-shrink: 0;
+}
+
+/* ── Card action buttons ─────────────────────────────────────── */
+.card-actions {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  margin-top: 1.4rem;
+  flex-wrap: wrap;
+}
+
+/* ── Social share buttons ────────────────────────────────────── */
+.card-social {
+  display: flex;
+  gap: 0.7rem;
+  justify-content: center;
   margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.social-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.65rem 1.3rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.social-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.social-fb {
+  background: #1877f2;
+  color: #fff;
+}
+
+.social-wa {
+  background: #25d366;
+  color: #fff;
 }
 
 /* ── Row and misc ────────────────────────────────────────────── */

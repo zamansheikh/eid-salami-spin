@@ -17,8 +17,29 @@ const hindSiliguri = Hind_Siliguri({
 export const metadata: Metadata = {
 	title: "ঈদ সালামি | Eid Salami Wheel",
 	description:
-		"ঈদের সালামি সুন্দরভাবে ভাগ করুন, স্পিন করে জিতুন, কার্ড শেয়ার করুন।",
-};
+		"ঈদের সালামি সুন্দরভাবে ভাগ করুন, স্পিন করে জিতুন, কার্ড শেয়ার করুন।",	metadataBase: new URL("https://eid-salami-for-u.vercel.app"),
+	openGraph: {
+		title: "🌙 ঈদ সালামি | Eid Salami Wheel",
+		description: "প্রিয়জনদের জন্য ঈদ সালামি তৈরি করুন, স্পিন হুইলে সবাই আনন্দে নিজের অংশ জিতবে! 🎁",
+		url: "https://eid-salami-for-u.vercel.app",
+		siteName: "Eid Salami Wheel",
+		locale: "bn_BD",
+		type: "website",
+		images: [
+			{
+				url: "/api/og?name=ঈদ%20সালামি%20চাকা&amount=🎁",
+				width: 1200,
+				height: 630,
+				alt: "Eid Salami Wheel",
+			},
+		],
+	},
+	twitter: {
+		card: "summary_large_image",
+		title: "🌙 ঈদ সালামি | Eid Salami Wheel",
+		description: "প্রিয়জনদের জন্য ঈদ সালামি তৈরি করুন, স্পিন হুইলে সবাই আনন্দে নিজের অংশ জিতবে!",
+		images: ["/api/og?name=ঈদ%20সালামি%20চাকা&amount=🎁"],
+	},};
 
 export default function RootLayout({
 	children,

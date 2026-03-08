@@ -29,18 +29,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const ogUrl = `${baseUrl}/api/og?name=${encodeURIComponent(claim.recipientName)}&amount=${claim.amount}`;
 
   return {
-    title: `${claim.recipientName} জিতেছে ৳${formatBdt(claim.amount)} সালামি`,
-    description: "ঈদ সালামি কার্ড শেয়ার করুন এবং আনন্দ ছড়িয়ে দিন।",
+    title: `🌙 ${claim.recipientName} জিতেছে ৳${formatBdt(claim.amount)} ঈদ সালামি!`,
+    description: `${claim.recipientName} ঈদ সালামি হুইলে ৳${formatBdt(claim.amount)} পেয়েছে! তুমিও তোমার প্রিয়জনদের জন্য সালামি তৈরি করো 🎁`,
     openGraph: {
-      title: "Eid Salami Winner",
-      description: `${claim.recipientName} পেয়েছে ৳${formatBdt(claim.amount)} সালামি`,
+      title: `🌙 ${claim.recipientName} পেয়েছে ৳${formatBdt(claim.amount)} ঈদ সালামি!`,
+      description: `ঈদ সালামি হুইলে ${claim.recipientName} জিতেছে ৳${formatBdt(claim.amount)}! তুমিও তোমার প্রিয়জনদের সালামি দাও 🎁`,
       url: cardUrl,
-      images: [ogUrl],
+      images: [{ url: ogUrl, width: 1200, height: 630, alt: `${claim.recipientName} - Eid Salami Winner` }],
+      type: "website",
+      siteName: "Eid Salami Wheel",
     },
     twitter: {
       card: "summary_large_image",
-      title: "Eid Salami Winner",
-      description: `${claim.recipientName} পেয়েছে ৳${formatBdt(claim.amount)} সালামি`,
+      title: `🌙 ${claim.recipientName} পেয়েছে ৳${formatBdt(claim.amount)} সালামি!`,
+      description: `ঈদ সালামি হুইলে জিতেছে! তুমিও সালামি দাও 🎁`,
       images: [ogUrl],
     },
   };
