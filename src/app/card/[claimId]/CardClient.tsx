@@ -17,6 +17,14 @@ function bnNumber(value: number) {
   return new Intl.NumberFormat("bn-BD").format(value);
 }
 
+function detectInAppBrowser() {
+  if (typeof navigator === "undefined") return { inApp: false, android: false };
+  const ua = navigator.userAgent || "";
+  const inApp = /FBAN|FBAV|FBIOS|Instagram|MicroMessenger|Line\/|KAKAOTALK/i.test(ua);
+  const android = /android/i.test(ua);
+  return { inApp, android };
+}
+
 export default function CardClient({
   claimId,
   recipientName,
@@ -27,6 +35,9 @@ export default function CardClient({
   const cardRef = useRef<HTMLDivElement>(null);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [isFbBrowser, setIsFbBrowser] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
+  const [showOpenHint, setShowOpenHint] = useState(false);
 
   const cardUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -36,6 +47,12 @@ export default function CardClient({
   const homeUrl = useMemo(() => {
     if (typeof window === "undefined") return "/";
     return window.location.origin;
+  }, []);
+
+  useEffect(() => {
+    const { inApp, android } = detectInAppBrowser();
+    setIsFbBrowser(inApp);
+    setIsAndroid(android);
   }, []);
 
   useEffect(() => {
@@ -52,7 +69,29 @@ export default function CardClient({
     }).then((url) => setQrDataUrl(url));
   }, [cardUrl]);
 
+  const openInExternalBrowser = () => {
+    const url = window.location.href;
+    if (isAndroid) {
+      // Android intent — opens current page in Chrome
+      const { hostname, pathname, search } = window.location;
+      window.location.href = `intent://${hostname}${pathname}${search}#Intent;scheme=https;package=com.android.chrome;end;`;
+    } else {
+      // iOS / unknown — copy URL so user can paste into Safari
+      navigator.clipboard.writeText(url).then(() => {
+        setShowOpenHint(true);
+        setTimeout(() => setShowOpenHint(false), 4000);
+      }).catch(() => setShowOpenHint(true));
+    }
+  };
+
   const downloadCard = async () => {
+    // Facebook / Instagram in-app browser blocks anchor.download — guide the user
+    if (isFbBrowser) {
+      setShowOpenHint(true);
+      setTimeout(() => setShowOpenHint(false), 6000);
+      return;
+    }
+
     if (!cardRef.current) return;
 
     const el = cardRef.current;
@@ -132,6 +171,59 @@ export default function CardClient({
 
   return (
     <main className="main-wrap">
+      {/* ── In-app browser banner ───────────────────────── */}
+      {isFbBrowser && (
+        <div style={{
+          background: "linear-gradient(90deg,#78350f,#92400e)",
+          border: "1px solid #fbbf24",
+          borderRadius: 12,
+          padding: "0.85rem 1rem",
+          marginBottom: "1rem",
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.6rem",
+        }}>
+          <p style={{ margin: 0, color: "#fef3c7", fontWeight: 600, fontSize: "0.95rem" }}>
+            ⚠️ Facebook App এর ভেতরে ডাউনলোড কাজ করে না
+          </p>
+          <p style={{ margin: 0, color: "#fde68a", fontSize: "0.85rem" }}>
+            কার্ড ডাউনলোড করতে Chrome বা Safari এ খুলুন।
+          </p>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ alignSelf: "flex-start", fontSize: "0.88rem", padding: "0.5rem 1.1rem" }}
+            onClick={openInExternalBrowser}
+          >
+            {isAndroid ? "🌐 Chrome এ খুলুন" : "🌐 লিংক কপি করুন → Safari এ পেস্ট করুন"}
+          </button>
+        </div>
+      )}
+
+      {/* ── "Link copied / open manually" hint ─────────── */}
+      {showOpenHint && (
+        <div style={{
+          position: "fixed",
+          bottom: "1.5rem",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 500,
+          background: "#052a22",
+          border: "1px solid rgba(212,168,83,0.5)",
+          borderRadius: 12,
+          padding: "0.8rem 1.4rem",
+          color: "#fde68a",
+          fontSize: "0.92rem",
+          textAlign: "center",
+          boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
+          maxWidth: "min(380px,90vw)",
+        }}>
+          {isAndroid
+            ? "Chrome এ খুলে ডাউনলোড বাটন চাপুন 📥"
+            : "লিংক কপি হয়েছে! Safari বা Chrome খুলে paste করুন, তারপর ডাউনলোড করুন। 📋"}
+        </div>
+      )}
+
       <div className="hero-badge">🏆 Winner Card</div>
       <h1 className="hero-title" style={{ fontSize: "clamp(1.8rem,5vw,3rem)" }}>
         আপনার ঈদ সালামি কার্ড
