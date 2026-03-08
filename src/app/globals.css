@@ -1,26 +1,256 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-emerald-900: #064e3b;
+  --color-emerald-800: #065f46;
+  --color-emerald-700: #047857;
+  --color-emerald-600: #059669;
+  --color-emerald-500: #10b981;
+  --color-emerald-400: #34d399;
+  --color-emerald-100: #d1fae5;
+  --color-emerald-50: #ecfdf5;
+  --color-gold-500: #d4a853;
+  --color-gold-400: #e2bd6e;
+  --color-gold-300: #f0d48a;
+  --color-gold-200: #f5e1a4;
+  --color-gold-100: #faf0d0;
+  --color-gold-600: #b8922e;
+  --color-gold-700: #9a7a1f;
+  --font-bangla: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-bangla);
+  background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #065f46 100%);
+  color: #ffffff;
+  min-height: 100vh;
+}
+
+/* Islamic geometric pattern overlay */
+.islamic-pattern {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: 
+    radial-gradient(circle at 25% 25%, #d4a853 1px, transparent 1px),
+    radial-gradient(circle at 75% 75%, #d4a853 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, #d4a853 0.5px, transparent 0.5px);
+  background-size: 60px 60px, 60px 60px, 30px 30px;
+  z-index: 0;
+}
+
+/* Star decorations */
+.star-decoration {
+  position: absolute;
+  font-size: 1.5rem;
+  opacity: 0.2;
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 20px rgba(212, 168, 83, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(212, 168, 83, 0.6); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.5s ease-out forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #d4a853, #f0d48a, #d4a853);
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.animate-pulse-gold {
+  animation: pulse-gold 2s ease-in-out infinite;
+}
+
+/* Crescent and star */
+.crescent {
+  display: inline-block;
+  position: relative;
+}
+
+/* Glass card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 1.5rem;
+}
+
+/* Gold button */
+.btn-gold {
+  background: linear-gradient(135deg, #d4a853, #e2bd6e, #d4a853);
+  color: #064e3b;
+  font-weight: 700;
+  padding: 0.875rem 2.5rem;
+  border-radius: 9999px;
+  font-size: 1.125rem;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(212, 168, 83, 0.4);
+}
+
+.btn-gold:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(212, 168, 83, 0.6);
+}
+
+.btn-gold:active {
+  transform: translateY(0);
+}
+
+.btn-gold:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Input styles */
+.input-eid {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1.5px solid rgba(212, 168, 83, 0.3);
+  border-radius: 1rem;
+  padding: 0.875rem 1.25rem;
+  color: white;
+  font-size: 1rem;
+  font-family: var(--font-bangla);
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.input-eid::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.input-eid:focus {
+  outline: none;
+  border-color: #d4a853;
+  box-shadow: 0 0 20px rgba(212, 168, 83, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Wheel styles */
+.wheel-container {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+  .wheel-container {
+    width: 400px;
+    height: 400px;
+  }
+}
+
+.wheel {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+  transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+  border: 6px solid #d4a853;
+  box-shadow: 0 0 30px rgba(212, 168, 83, 0.4), inset 0 0 30px rgba(0, 0, 0, 0.2);
+}
+
+.wheel-pointer {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  font-size: 2.5rem;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+}
+
+/* Gift card styles */
+.gift-card {
+  background: linear-gradient(145deg, #064e3b, #047857, #065f46);
+  border: 3px solid #d4a853;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.gift-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 80%, rgba(212, 168, 83, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(212, 168, 83, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 168, 83, 0.5);
+  border-radius: 3px;
+}
+
+/* Moon decoration */
+.moon-glow {
+  filter: drop-shadow(0 0 15px rgba(212, 168, 83, 0.6));
 }
