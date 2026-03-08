@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type CreateResponse = {
   sessionId: string;
@@ -49,6 +50,12 @@ export default function HomePage() {
   const [result, setResult] = useState<CreateResponse | null>(null);
   const [savedSessions, setSavedSessions] = useState<SavedSession[]>([]);
 
+  // Session recovery
+  const [importInput, setImportInput] = useState("");
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState("");
+  const router = useRouter();
+
   useEffect(() => {
     setSavedSessions(loadSavedSessions());
   }, []);
@@ -94,6 +101,53 @@ export default function HomePage() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImport = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setImportError("");
+
+    // Accept full URL or bare session ID
+    let id = importInput.trim();
+    const match = id.match(/\/created\/([^/?#]+)/);
+    if (match) id = match[1];
+    if (!id) {
+      setImportError("একটি সেশন ID বা লিংক লিখুন।");
+      return;
+    }
+
+    setImportLoading(true);
+    try {
+      const res = await fetch(`/api/sessions/${id}`, { cache: "no-store" });
+      if (!res.ok) throw new Error("সেশনটি পাওয়া যায়নি। আইডি বা লিংক ঠিক আছে?");
+      const data = await res.json() as {
+        sessionId: string;
+        organizerName: string;
+        totalAmount: number;
+        peopleCount: number;
+        createdAt?: string;
+      };
+
+      const toSave: SavedSession = {
+        sessionId: data.sessionId,
+        organizerName: data.organizerName,
+        totalAmount: data.totalAmount,
+        peopleCount: data.peopleCount,
+        createdAt: data.createdAt ?? new Date().toISOString(),
+      };
+
+      // Avoid duplicates
+      const existing = loadSavedSessions().filter((s) => s.sessionId !== data.sessionId);
+      existing.unshift(toSave);
+      localStorage.setItem(LS_KEY, JSON.stringify(existing));
+      setSavedSessions(existing);
+
+      router.push(`/created/${data.sessionId}`);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "একটি সমস্যা হয়েছে।");
+    } finally {
+      setImportLoading(false);
     }
   };
 
@@ -216,6 +270,31 @@ export default function HomePage() {
           ))}
         </section>
       )}
+
+      {/* ── Session recovery ──────────────────────────────── */}
+      <section className="panel" style={{ marginTop: "1.5rem", borderColor: "rgba(212,168,83,0.2)" }}>
+        <h3 style={{ color: "var(--gold-200)", marginBottom: "0.4rem" }}>🔑 অন্য ব্রাউজারের সেশন খুলুন</h3>
+        <p className="text-muted" style={{ marginBottom: "0.9rem", fontSize: "0.9rem" }}>
+          যদি অন্য ব্রাউজার বা ফোনে আগে সেশন তৈরি করে থাকেন, তাহলে ড্যাশবোর্ড লিংক বা সেশন ID পেস্ট করুন।
+        </p>
+        <form onSubmit={handleImport}>
+          <div className="form-row">
+            <label htmlFor="import-id">ড্যাশবোর্ড লিংক বা সেশন ID</label>
+            <input
+              id="import-id"
+              value={importInput}
+              onChange={(e) => setImportInput(e.target.value)}
+              placeholder="https://...eid-salami-for-u.vercel.app/created/xxxxx"
+            />
+          </div>
+          <button type="submit" className="btn btn-secondary" disabled={importLoading}>
+            {importLoading ? "যাচাই করা হচ্ছে..." : "→ সেশনে প্রবেশ করুন"}
+          </button>
+        </form>
+        {importError && (
+          <p style={{ color: "#fca5a5", marginTop: "0.6rem", fontSize: "0.9rem" }}>{importError}</p>
+        )}
+      </section>
     </main>
   );
 }
