@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { toPng } from "html-to-image";
-import Image from "next/image";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -56,9 +55,17 @@ export default function CardClient({
   const downloadCard = async () => {
     if (!cardRef.current) return;
 
-    const image = await toPng(cardRef.current, {
+    const el = cardRef.current;
+    const image = await toPng(el, {
       cacheBust: true,
-      pixelRatio: 3,
+      pixelRatio: 2,
+      width: el.offsetWidth,
+      height: el.offsetHeight,
+      style: {
+        // ensure nothing is clipped during capture
+        overflow: "hidden",
+        transform: "none",
+      },
     });
 
     const anchor = document.createElement("a");
@@ -165,12 +172,13 @@ export default function CardClient({
           </div>
           {qrDataUrl && (
             <div className="card-v2-qr">
-              <Image
+              {/* plain img so html-to-image captures it correctly */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={qrDataUrl}
                 alt="QR Code"
                 width={80}
                 height={80}
-                unoptimized
                 style={{ borderRadius: 8, display: "block" }}
               />
               <span style={{ fontSize: "0.65rem", opacity: 0.6, marginTop: 2, display: "block", textAlign: "center" }}>
