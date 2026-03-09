@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 		type: "website",
 		images: [
 			{
-				url: "/api/og?type=home",
+				url: "https://eid-salami-for-u.vercel.app/api/og?type=home",
 				width: 1200,
 				height: 630,
 				alt: "Eid Salami Wheel",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
 		card: "summary_large_image",
 		title: "🌙 ঈদ সালামি | Eid Salami Wheel",
 		description: "প্রিয়জনদের জন্য ঈদ সালামি তৈরি করুন, স্পিন হুইলে সবাই আনন্দে নিজের অংশ জিতবে!",
-		images: ["/api/og?type=home"],
+		images: ["https://eid-salami-for-u.vercel.app/api/og?type=home"],
 	},};
 
 export default function RootLayout({
