@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const baseUrl = getBaseUrl();
   const cardUrl = `${baseUrl}/card/${claimId}`;
-  const ogUrl = `${baseUrl}/api/og?name=${encodeURIComponent(claim.recipientName)}&amount=${claim.amount}`;
+  const ogUrl = `${baseUrl}/api/og?type=card&name=${encodeURIComponent(claim.recipientName)}&amount=${claim.amount}`;
 
   return {
     title: `🌙 ${claim.recipientName} জিতেছে ৳${formatBdt(claim.amount)} ঈদ সালামি!`,
