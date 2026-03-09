@@ -170,7 +170,6 @@ export default function CardClient({
         await navigator.share({
           title: `ঈদ সালামি: ৳${bnNumber(amount)} পেয়েছি!`,
           text: shareText,
-          url: cardUrl,
         });
         return;
       } catch {

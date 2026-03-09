@@ -39,7 +39,7 @@ export async function GET(request: Request) {
           {/* right column — main content */}
           <div style={{ display: "flex", flex: 1, flexDirection: "column", justifyContent: "center", paddingRight: 64, paddingLeft: 24 }}>
             {/* badge */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(212,168,83,0.12)", border: "2px solid rgba(212,168,83,0.45)", borderRadius: 999, padding: "10px 28px", width: "fit-content", marginBottom: 32 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(212,168,83,0.12)", border: "2px solid rgba(212,168,83,0.45)", borderRadius: 999, padding: "10px 28px", marginBottom: 32, alignSelf: "flex-start" }}>
               <div style={{ fontSize: 26, color: "#fde68a", display: "flex" }}>🎁 Eid Mubarak</div>
             </div>
 
