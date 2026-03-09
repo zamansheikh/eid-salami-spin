@@ -119,29 +119,37 @@ export default function CardClient({
 
     if (!cardRef.current) return;
 
+    // Always render at the card's designed width (480 px) regardless of mobile viewport
+    const CARD_WIDTH = 480;
     const el = cardRef.current;
-    const w = el.offsetWidth;
-    const h = el.offsetHeight;
 
-    // Clone and pin to top-left so html-to-image captures it without margin offsets
     const clone = el.cloneNode(true) as HTMLElement;
     clone.style.cssText = [
       "position:fixed",
       "top:0",
       "left:0",
       "margin:0",
-      `width:${w}px`,
+      `width:${CARD_WIDTH}px`,
       "border-radius:0",
       "z-index:-9999",
       "opacity:1",
     ].join(";");
+
+    // Override viewport-relative font (clamp uses 10vw which would be tiny on mobile)
+    const amountEl = clone.querySelector(".card-v2-amount") as HTMLElement | null;
+    if (amountEl) amountEl.style.fontSize = "4.5rem";
+
     document.body.appendChild(clone);
+
+    // Let the browser reflow at the new fixed width before measuring
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    const h = clone.scrollHeight;
 
     try {
       const image = await toPng(clone, {
         cacheBust: true,
         pixelRatio: 2,
-        width: w,
+        width: CARD_WIDTH,
         height: h,
       });
 
