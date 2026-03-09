@@ -57,6 +57,35 @@ export default function RootLayout({
 				<span className="decor decor-5" aria-hidden="true">✧</span>
 				<span className="decor decor-6" aria-hidden="true">🌟</span>
 				{children}
+				<footer style={{
+					textAlign: "center",
+					padding: "1.2rem 1rem 1.5rem",
+					marginTop: "1rem",
+					borderTop: "1px solid rgba(255,255,255,0.05)",
+				}}>
+					<p style={{ margin: 0, color: "rgba(255,255,255,0.3)", fontSize: "0.75rem", lineHeight: 2 }}>
+						Developed by{" "}
+						<span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>Md. Shamsuzzaman</span>
+						{" · "}
+						<a
+							href="https://github.com/zamansheikh"
+							target="_blank"
+							rel="noopener noreferrer"
+							style={{ color: "rgba(255,255,255,0.4)", textDecoration: "none" }}
+						>
+							GitHub
+						</a>
+						{" · "}
+						<a
+							href="https://facebook.com/zamansheikh.404"
+							target="_blank"
+							rel="noopener noreferrer"
+							style={{ color: "rgba(255,255,255,0.4)", textDecoration: "none" }}
+						>
+							Facebook
+						</a>
+					</p>
+				</footer>
 			</body>
 		</html>
 	);

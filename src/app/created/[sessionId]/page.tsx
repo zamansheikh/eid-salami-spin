@@ -285,7 +285,7 @@ export default function CreatedPage({
                           </span>
                         </div>
                       ) : (
-                        <span style={{ fontSize: "0.76rem", color: "#6b7280", fontStyle: "italic" }}>সালামি দাবি করেনি</span>
+                        <span style={{ fontSize: "0.76rem", color: "rgba(255,255,255,0.3)", fontStyle: "italic" }}>সালামি দাবি করেনি</span>
                       )}
                     </div>
                   ))}
