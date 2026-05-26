@@ -279,6 +279,9 @@ export default function SpinPage({
   const isEnded = useMemo(() => (session ? session.remainingSlots <= 0 : false), [session]);
 
   const spinAndClaim = async () => {
+    // One spin per person — never allow a second claim once one is recorded.
+    if (alreadySpun || result || spinning) return;
+
     setError("");
     setResult(null);
     setWinningIndex(null);
@@ -442,7 +445,9 @@ export default function SpinPage({
           onClaim={() =>
             setClaimTarget({ claimId: result.claimId, claimToken: result.claimToken })
           }
-          onClose={() => setShowModal(false)}
+          // Dismissing returns to the "already spun" screen (card + claim
+          // buttons) — never back to the spin form, so a person can't re-spin.
+          onClose={() => { setShowModal(false); setResult(null); }}
         />
       )}
 
@@ -492,14 +497,14 @@ export default function SpinPage({
                 value={recipientName}
                 onChange={(e) => setRecipientName(e.target.value)}
                 placeholder="আপনার নাম লিখুন"
-                disabled={spinning || isEnded}
+                disabled={spinning || isEnded || !!alreadySpun || !!result}
               />
             </div>
 
             <button
               type="button"
               className="btn btn-primary"
-              disabled={spinning || isEnded}
+              disabled={spinning || isEnded || !!alreadySpun || !!result}
               onClick={spinAndClaim}
               style={{ width: "100%" }}
             >
