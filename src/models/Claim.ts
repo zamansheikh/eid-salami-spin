@@ -17,6 +17,9 @@ const claimSchema = new Schema(
   { timestamps: true }
 );
 
+// Paginated dashboard query: claims for one session, newest first.
+claimSchema.index({ sessionId: 1, createdAt: -1 });
+
 export type ClaimDocument = InferSchemaType<typeof claimSchema>;
 
 export const ClaimModel = models.Claim || model("Claim", claimSchema, "claims");

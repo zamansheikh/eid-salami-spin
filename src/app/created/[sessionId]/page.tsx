@@ -23,6 +23,8 @@ type SessionResponse = {
   remainingAmount: number;
   remainingSlots: number;
   claims: ClaimSummary[];
+  claimsTotal: number;
+  claimedCount: number;
   message?: string;
 };
 
@@ -87,7 +89,10 @@ export default function CreatedPage({
     if (!sessionId) return;
 
     const load = async () => {
-      const response = await fetch(`/api/sessions/${sessionId}`, { cache: "no-store" });
+      const response = await fetch(
+        `/api/sessions/${sessionId}?claimsPage=${claimsPage}&claimsLimit=${CLAIMS_PER_PAGE}`,
+        { cache: "no-store" }
+      );
       const data = (await response.json()) as SessionResponse;
       if (!response.ok) {
         setError(data.message || "Data fetch failed");
@@ -101,7 +106,7 @@ export default function CreatedPage({
     load();
     const intervalRef = setInterval(load, 3500);
     return () => clearInterval(intervalRef);
-  }, [sessionId]);
+  }, [sessionId, claimsPage]);
 
   const shareUrl = useMemo(() => {
     if (!sessionId || typeof window === "undefined") return "";
@@ -241,7 +246,7 @@ export default function CreatedPage({
           {editingBudget && session && (
             <div style={{ marginTop: "1rem", padding: "0.9rem", background: "rgba(212,168,83,0.07)", borderRadius: 12, border: "1px solid rgba(212,168,83,0.2)" }}>
               <p style={{ margin: "0 0 0.6rem", color: "#6ee7b7", fontSize: "0.78rem" }}>
-                Already distributed: <b>{bnNumber(alreadyClaimed)} BDT</b> to <b>{bnNumber(session.claims.length)}</b> people — these stay fixed. Edit what&apos;s left:
+                Already distributed: <b>{bnNumber(alreadyClaimed)} BDT</b> to <b>{bnNumber(session.claimedCount ?? session.peopleCount - session.remainingSlots)}</b> people — these stay fixed. Edit what&apos;s left:
               </p>
 
               <div style={{ marginBottom: "0.6rem" }}>
@@ -294,18 +299,18 @@ export default function CreatedPage({
       </details>
 
       {(() => {
-        const allClaims = session ? [...session.claims].reverse() : [];
-        const totalPages = Math.ceil(allClaims.length / CLAIMS_PER_PAGE);
-        const pageClaims = allClaims.slice((claimsPage - 1) * CLAIMS_PER_PAGE, claimsPage * CLAIMS_PER_PAGE);
+        const pageClaims = session?.claims ?? [];
+        const claimsTotal = session?.claimsTotal ?? 0;
+        const totalPages = Math.max(1, Math.ceil(claimsTotal / CLAIMS_PER_PAGE));
         return (
           <section className="panel sparkle" style={{ marginTop: "1.5rem" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.6rem" }}>
               <h3 style={{ margin: 0 }}>Who has claimed their salami</h3>
-              {allClaims.length > 0 && (
-                <span style={{ color: "#6ee7b7", fontSize: "0.8rem" }}>{allClaims.length} total</span>
+              {claimsTotal > 0 && (
+                <span style={{ color: "#6ee7b7", fontSize: "0.8rem" }}>{claimsTotal} total</span>
               )}
             </div>
-            {!session || allClaims.length === 0 ? (
+            {!session || claimsTotal === 0 ? (
               <p>Nobody has spun yet.</p>
             ) : (
               <>

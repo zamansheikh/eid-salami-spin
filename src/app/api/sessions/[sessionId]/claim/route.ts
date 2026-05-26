@@ -70,18 +70,11 @@ export async function POST(request: Request, context: Context) {
     const amount = before.pendingAmounts[before.pendingAmounts.length - 1];
     const claimId = uid.rnd();
     const claimToken = tokenUid.rnd();
-    const now = new Date();
 
-    // Append the claim record + adjust the running total. Both are
-    // append-only/derived, so this second update is safe — the atomic slot pop
-    // above is the single source of truth for "who got what".
-    await SessionModel.updateOne(
-      { sessionId },
-      {
-        $inc: { remainingAmount: -amount },
-        $push: { claims: { claimId, recipientName, amount, claimedAt: now } },
-      }
-    );
+    // Adjust the running total only. The claim record itself lives in the
+    // Claim collection (created below) — the session no longer keeps an
+    // embedded claims array, so the document stays tiny at any scale.
+    await SessionModel.updateOne({ sessionId }, { $inc: { remainingAmount: -amount } });
 
     await ClaimModel.create({
       claimId,

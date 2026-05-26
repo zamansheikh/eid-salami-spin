@@ -10,12 +10,24 @@ type Context = {
   params: Promise<{ sessionId: string }>;
 };
 
-export async function GET(_request: Request, context: Context) {
+export async function GET(request: Request, context: Context) {
   try {
     await connectToDatabase();
     const { sessionId } = await context.params;
 
-    const session = await SessionModel.findOne({ sessionId }).lean();
+    // Server-side claims pagination so the payload stays small no matter how
+    // many people have claimed.
+    const url = new URL(request.url);
+    const claimsLimit = Math.min(
+      Math.max(parseInt(url.searchParams.get("claimsLimit") || "10", 10) || 10, 1),
+      50
+    );
+    const claimsPage = Math.max(parseInt(url.searchParams.get("claimsPage") || "1", 10) || 1, 1);
+
+    // Summary fields only — never the (potentially huge) claims array.
+    const session = await SessionModel.findOne({ sessionId })
+      .select("sessionId organizerName totalAmount peopleCount remainingAmount remainingSlots pendingAmounts createdAt")
+      .lean();
 
     if (!session) {
       return NextResponse.json(
@@ -24,20 +36,22 @@ export async function GET(_request: Request, context: Context) {
       );
     }
 
-    // Enrich claims with paymentRequest data from Claim collection.
-    // Fetch only the two fields we need (claimId is indexed).
-    const claimIds = (session.claims ?? []).map((c: { claimId: string }) => c.claimId);
-    const fullClaims = claimIds.length
-      ? await ClaimModel.find({ claimId: { $in: claimIds } })
-          .select("claimId paymentRequest -_id")
-          .lean()
-      : [];
-    const payMap = Object.fromEntries(
-      fullClaims.map((c) => [c.claimId, c.paymentRequest ?? null])
-    );
-    const enrichedClaims = (session.claims ?? []).map((c: { claimId: string }) => ({
-      ...(c as object),
-      paymentRequest: payMap[c.claimId] ?? null,
+    // Claims come straight from the Claim collection (indexed by sessionId),
+    // already carrying paymentRequest — no embedded array, no enrichment merge.
+    const claimsTotal = await ClaimModel.countDocuments({ sessionId });
+    const claimDocs = await ClaimModel.find({ sessionId })
+      .select("claimId recipientName amount paymentRequest createdAt -_id")
+      .sort({ createdAt: -1 })
+      .skip((claimsPage - 1) * claimsLimit)
+      .limit(claimsLimit)
+      .lean();
+
+    const claims = claimDocs.map((c) => ({
+      claimId: c.claimId,
+      recipientName: c.recipientName,
+      amount: c.amount,
+      claimedAt: c.createdAt,
+      paymentRequest: c.paymentRequest ?? null,
     }));
 
     return NextResponse.json({
@@ -51,7 +65,11 @@ export async function GET(_request: Request, context: Context) {
       // the spin wheel. The claim picks one of these at random, so showing
       // them can't be gamed (you can't choose which one you get).
       pendingAmounts: session.pendingAmounts ?? [],
-      claims: enrichedClaims,
+      claims,
+      claimsTotal,
+      claimsPage,
+      claimsLimit,
+      claimedCount: Math.max(0, session.peopleCount - session.remainingSlots),
       createdAt: session.createdAt,
     });
   } catch (error) {
@@ -81,7 +99,7 @@ export async function PATCH(request: Request, context: Context) {
     }
 
     // What's already been won can never change.
-    const claimedCount = session.claims?.length ?? session.peopleCount - session.remainingSlots;
+    const claimedCount = session.peopleCount - session.remainingSlots;
     const alreadyDistributed = session.totalAmount - session.remainingAmount;
 
     // ── Validate the organizer name (if being edited) ────────────

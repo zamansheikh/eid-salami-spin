@@ -33,6 +33,10 @@ export async function connectToDatabase() {
     globalCache.promise = mongoose.connect(mongoUri, {
       dbName: "eid-salami",
       bufferCommands: false,
+      maxPoolSize: 10, // reuse a small pool of sockets across requests
+      minPoolSize: 1,
+      serverSelectionTimeoutMS: 8000,
+      socketTimeoutMS: 20000,
     });
   }
 
