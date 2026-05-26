@@ -29,6 +29,7 @@ export default function AdminPage() {
   const [copied, setCopied] = useState("");
   const [autoLogging, setAutoLogging] = useState(true);
   const [page, setPage] = useState(1);
+  const [deletingId, setDeletingId] = useState("");
   const ROWS_PER_PAGE = 15;
 
   // Auto-login from saved PIN in localStorage on first mount
@@ -100,6 +101,32 @@ export default function AdminPage() {
     navigator.clipboard.writeText(text);
     setCopied(key);
     setTimeout(() => setCopied(""), 1800);
+  };
+
+  const deleteSession = async (sessionId: string, name: string) => {
+    const cached = typeof window !== "undefined" ? localStorage.getItem(SESSION_KEY) : null;
+    if (!cached) return;
+    if (!window.confirm(`Delete "${name || sessionId}"?\nThis permanently removes the session and all its claims.`)) {
+      return;
+    }
+    setDeletingId(sessionId);
+    try {
+      const res = await fetch("/api/admin/sessions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: cached, sessionId }),
+      });
+      if (res.ok) {
+        setSessions((prev) => (prev ? prev.filter((s) => s.sessionId !== sessionId) : prev));
+      } else {
+        const data = (await res.json()) as { message?: string };
+        alert(data.message ?? "Delete failed.");
+      }
+    } catch {
+      alert("Connection error. Try again.");
+    } finally {
+      setDeletingId("");
+    }
   };
 
   const filtered = (sessions ?? []).filter((s) =>
@@ -184,32 +211,29 @@ export default function AdminPage() {
   // ── Dashboard ───────────────────────────────────────────────
   return (
     <main className="main-wrap">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.6rem", marginBottom: "0.5rem" }}>
-        <div>
-          <div className="hero-badge" style={{ display: "inline-block" }}>🛡 Super Admin</div>
-          <h1 className="hero-title" style={{ fontSize: "clamp(1.4rem,4vw,2.2rem)", marginTop: "0.4rem" }}>
-            All Sessions
-          </h1>
+      <div className="admin-head">
+        <div className="admin-head-bar">
+          <div className="hero-badge">🛡 Super Admin</div>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              type="button"
+              className="btn btn-secondary admin-btn"
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              {loading ? "…" : "⟳ Refresh"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary admin-btn"
+              style={{ color: "#fca5a5" }}
+              onClick={() => { localStorage.removeItem(SESSION_KEY); setSessions(null); setPin(""); }}
+            >
+              Lock
+            </button>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            style={{ fontSize: "0.85rem", padding: "0.5rem 1rem" }}
-            onClick={handleRefresh}
-            disabled={loading}
-          >
-            {loading ? "..." : "⟳ Refresh"}
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            style={{ fontSize: "0.85rem", padding: "0.5rem 1rem", color: "#fca5a5" }}
-            onClick={() => { localStorage.removeItem(SESSION_KEY); setSessions(null); setPin(""); }}
-          >
-            Lock
-          </button>
-        </div>
+        <h1 className="hero-title admin-head-title">All Sessions</h1>
       </div>
 
       {/* stats strip */}
@@ -251,90 +275,57 @@ export default function AdminPage() {
         {totalPages > 1 && ` — page ${page}/${totalPages}`}
       </p>
 
-      {/* table wrapper */}
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
-          <thead>
-            <tr style={{ borderBottom: "1px solid rgba(212,168,83,0.25)", color: "#fde68a" }}>
-              {["#", "Organizer", "Amount", "People", "Claimed", "Remaining", "Created", "Links"].map((h) => (
-                <th key={h} style={{ padding: "0.6rem 0.7rem", textAlign: "left", whiteSpace: "nowrap" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.map((s, idx) => {
-              const dashUrl = `${baseUrl}/created/${s.sessionId}`;
-              const spinUrl = `${baseUrl}/s/${s.sessionId}`;
-              const allDone = s.remainingSlots === 0;
+      {/* responsive card list */}
+      <div className="admin-grid">
+        {pageRows.map((s, idx) => {
+          const dashUrl = `${baseUrl}/created/${s.sessionId}`;
+          const spinUrl = `${baseUrl}/s/${s.sessionId}`;
+          const allDone = s.remainingSlots === 0;
 
-              return (
-                <tr
-                  key={s.sessionId}
-                  style={{
-                    borderBottom: "1px solid rgba(255,255,255,0.04)",
-                    background: idx % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent",
-                  }}
+          return (
+            <div key={s.sessionId} className="admin-card">
+              <div className="admin-card-head">
+                <div className="admin-card-title">
+                  <span className="admin-idx">#{(page - 1) * ROWS_PER_PAGE + idx + 1}</span>
+                  <span className="admin-org">{s.organizerName}</span>
+                </div>
+                <span className="admin-amount">৳{bnNumber(s.totalAmount)}</span>
+              </div>
+
+              <div className="admin-card-meta">
+                <span>👥 {bnNumber(s.peopleCount)} people</span>
+                <span className="admin-badge" data-done={allDone}>
+                  {bnNumber(s.claimedCount)}/{bnNumber(s.peopleCount)} claimed
+                </span>
+                <span>৳{bnNumber(s.remainingAmount)} / {bnNumber(s.remainingSlots)} left</span>
+                <span>
+                  📅 {s.createdAt ? new Date(s.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" }) : "—"}
+                </span>
+                <span className="admin-id">ID: {s.sessionId}</span>
+              </div>
+
+              <div className="admin-card-actions">
+                <Link href={`/created/${s.sessionId}`} className="btn btn-secondary" target="_blank">
+                  Dashboard
+                </Link>
+                <button type="button" className="btn btn-secondary" onClick={() => copyText(dashUrl, `dash-${s.sessionId}`)}>
+                  {copied === `dash-${s.sessionId}` ? "✓ Copied" : "Copy Dash"}
+                </button>
+                <button type="button" className="btn btn-secondary" style={{ color: "#86efac" }} onClick={() => copyText(spinUrl, `spin-${s.sessionId}`)}>
+                  {copied === `spin-${s.sessionId}` ? "✓ Copied" : "Spin URL"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => deleteSession(s.sessionId, s.organizerName)}
+                  disabled={deletingId === s.sessionId}
                 >
-                  <td style={{ padding: "0.55rem 0.7rem", color: "#6ee7b7" }}>{(page - 1) * ROWS_PER_PAGE + idx + 1}</td>
-                  <td style={{ padding: "0.55rem 0.7rem", color: "#f0fdf4", fontWeight: 600 }}>
-                    {s.organizerName}
-                  </td>
-                  <td style={{ padding: "0.55rem 0.7rem", color: "#fde68a" }}>
-                    ৳{bnNumber(s.totalAmount)}
-                  </td>
-                  <td style={{ padding: "0.55rem 0.7rem" }}>
-                    {s.peopleCount}
-                  </td>
-                  <td style={{ padding: "0.55rem 0.7rem" }}>
-                    <span style={{
-                      background: allDone ? "rgba(74,222,128,0.15)" : "rgba(251,191,36,0.1)",
-                      color: allDone ? "#4ade80" : "#fbbf24",
-                      borderRadius: 6,
-                      padding: "0.15rem 0.5rem",
-                      fontSize: "0.8rem",
-                    }}>
-                      {s.claimedCount}/{s.peopleCount}
-                    </span>
-                  </td>
-                  <td style={{ padding: "0.55rem 0.7rem", color: "#a7f3d0" }}>
-                    ৳{bnNumber(s.remainingAmount)} / {s.remainingSlots} left
-                  </td>
-                  <td style={{ padding: "0.55rem 0.7rem", color: "#6ee7b7", whiteSpace: "nowrap", fontSize: "0.75rem" }}>
-                    {s.createdAt ? new Date(s.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" }) : "—"}
-                  </td>
-                  <td style={{ padding: "0.55rem 0.7rem" }}>
-                    <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-                      <Link
-                        href={`/created/${s.sessionId}`}
-                        className="btn btn-secondary"
-                        style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem" }}
-                        target="_blank"
-                      >
-                        Dashboard
-                      </Link>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem" }}
-                        onClick={() => copyText(dashUrl, `dash-${s.sessionId}`)}
-                      >
-                        {copied === `dash-${s.sessionId}` ? "✓" : "Copy"}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem", color: "#86efac" }}
-                        onClick={() => copyText(spinUrl, `spin-${s.sessionId}`)}
-                      >
-                        {copied === `spin-${s.sessionId}` ? "✓ Spin" : "Spin URL"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  {deletingId === s.sessionId ? "Deleting…" : "🗑 Delete"}
+                </button>
+              </div>
+            </div>
+          );
+        })}
 
         {filtered.length === 0 && (
           <p style={{ color: "#6ee7b7", textAlign: "center", padding: "2rem" }}>

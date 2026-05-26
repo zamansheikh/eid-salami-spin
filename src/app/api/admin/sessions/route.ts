@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { SessionModel } from "@/models/Session";
+import { ClaimModel } from "@/models/Claim";
 
 export const runtime = "nodejs";
 
@@ -33,6 +34,35 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { message: "Server error.", error: error instanceof Error ? error.message : "Unknown" },
+      { status: 500 }
+    );
+  }
+}
+
+// Delete a session and all of its claims (PIN-protected).
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = (await request.json()) as { pin?: string; sessionId?: string };
+
+    if (!body.pin || body.pin !== process.env.ADMIN_PIN) {
+      return NextResponse.json({ message: "Invalid PIN." }, { status: 401 });
+    }
+    if (!body.sessionId) {
+      return NextResponse.json({ message: "sessionId is required." }, { status: 400 });
+    }
+
+    await connectToDatabase();
+
+    const result = await SessionModel.deleteOne({ sessionId: body.sessionId });
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ message: "Session not found." }, { status: 404 });
+    }
+    await ClaimModel.deleteMany({ sessionId: body.sessionId });
+
+    return NextResponse.json({ message: "Session deleted.", sessionId: body.sessionId });
+  } catch (error) {
+    return NextResponse.json(
+      { message: "Delete failed.", error: error instanceof Error ? error.message : "Unknown" },
       { status: 500 }
     );
   }

@@ -1067,6 +1067,158 @@ input[readOnly] {
   text-overflow: ellipsis;
 }
 
+/* ── Super-admin header ──────────────────────────────────────── */
+.admin-head {
+  margin-bottom: 1.1rem;
+}
+
+.admin-head-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.admin-head-title {
+  font-size: clamp(1.5rem, 5vw, 2.2rem);
+  margin: 0.7rem 0 0;
+}
+
+/* compact buttons (override the 48px mobile touch sizing for dense UI) */
+.admin-btn {
+  min-height: 0;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.8rem;
+}
+
+/* ── Super-admin session cards ───────────────────────────────── */
+.admin-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1000px) {
+  .admin-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.admin-card {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025));
+  border: 1px solid rgba(196, 181, 253, 0.16);
+  border-radius: 16px;
+  padding: 1rem 1.05rem;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.admin-card:hover {
+  border-color: rgba(245, 197, 66, 0.32);
+}
+
+.admin-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+
+.admin-card-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.admin-idx {
+  color: #8b7bb8;
+  font-size: 0.76rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.admin-org {
+  color: #f5f3ff;
+  font-weight: 700;
+  font-size: 1.02rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-amount {
+  color: #ffd24a;
+  font-weight: 800;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.admin-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+/* every meta item is a subtle pill chip */
+.admin-card-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(196, 181, 253, 0.12);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.74rem;
+  color: var(--violet-300);
+  white-space: nowrap;
+}
+
+.admin-card-meta .admin-badge {
+  font-weight: 700;
+  background: rgba(251, 191, 36, 0.14);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+}
+
+.admin-card-meta .admin-badge[data-done="true"] {
+  background: rgba(74, 222, 128, 0.16);
+  border-color: rgba(74, 222, 128, 0.3);
+  color: #4ade80;
+}
+
+.admin-card-meta .admin-id {
+  color: #8b7bb8;
+}
+
+.admin-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-card-actions .btn {
+  min-height: 0;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.78rem;
+  flex: 0 0 auto;
+}
+
+/* Destructive button */
+.btn-danger {
+  background: rgba(244, 63, 94, 0.14);
+  color: #fda4af;
+  border: 1px solid rgba(244, 63, 94, 0.45);
+}
+
+.btn-danger:hover {
+  background: rgba(244, 63, 94, 0.24);
+  border-color: rgba(244, 63, 94, 0.7);
+}
+
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 880px) {
   .grid-2 {
