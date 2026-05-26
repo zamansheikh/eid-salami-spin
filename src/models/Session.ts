@@ -31,6 +31,9 @@ const sessionSchema = new Schema(
   { timestamps: true }
 );
 
+// Index the admin "newest first" sort so it never does an in-memory sort.
+sessionSchema.index({ createdAt: -1 });
+
 export type SessionDocument = InferSchemaType<typeof sessionSchema>;
 
 export const SessionModel =

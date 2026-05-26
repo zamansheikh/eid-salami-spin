@@ -29,7 +29,9 @@ export async function POST(request: Request, context: Context) {
       );
     }
 
-    const session = await SessionModel.findOne({ sessionId });
+    const session = await SessionModel.findOne({ sessionId })
+      .select("organizerName remainingSlots")
+      .lean();
 
     if (!session) {
       return NextResponse.json(
@@ -38,29 +40,48 @@ export async function POST(request: Request, context: Context) {
       );
     }
 
-    if (session.remainingSlots <= 0 || session.pendingAmounts.length === 0) {
+    if (session.remainingSlots <= 0) {
       return NextResponse.json(
         { message: "দুঃখিত, সব সালামি ইতিমধ্যে বিতরণ হয়ে গেছে।" },
         { status: 409 }
       );
     }
 
-    const randomIndex = Math.floor(Math.random() * session.pendingAmounts.length);
-    const [amount] = session.pendingAmounts.splice(randomIndex, 1);
+    // Atomically claim one slot — pop a pending amount and decrement the slot
+    // count in a SINGLE document update. MongoDB serializes per-document
+    // updates, so concurrent spins can never grab the same amount or oversell
+    // slots. pendingAmounts is shuffled at creation, so popping the last
+    // element is effectively a random draw. Only small fields are projected
+    // (never the claims array).
+    const before = await SessionModel.findOneAndUpdate(
+      { sessionId, remainingSlots: { $gt: 0 }, "pendingAmounts.0": { $exists: true } },
+      { $pop: { pendingAmounts: 1 }, $inc: { remainingSlots: -1 } },
+      { new: false, projection: { pendingAmounts: 1, remainingAmount: 1, remainingSlots: 1 } }
+    ).lean<{ pendingAmounts: number[]; remainingAmount: number; remainingSlots: number } | null>();
+
+    if (!before || !before.pendingAmounts?.length) {
+      return NextResponse.json(
+        { message: "দুঃখিত, সব সালামি এই মুহূর্তে বিতরণ হয়ে গেছে।" },
+        { status: 409 }
+      );
+    }
+
+    // The element $pop removed is the last one in the pre-update array.
+    const amount = before.pendingAmounts[before.pendingAmounts.length - 1];
     const claimId = uid.rnd();
     const claimToken = tokenUid.rnd();
     const now = new Date();
 
-    session.remainingAmount -= amount;
-    session.remainingSlots -= 1;
-    session.claims.push({
-      claimId,
-      recipientName,
-      amount,
-      claimedAt: now,
-    });
-
-    await session.save();
+    // Append the claim record + adjust the running total. Both are
+    // append-only/derived, so this second update is safe — the atomic slot pop
+    // above is the single source of truth for "who got what".
+    await SessionModel.updateOne(
+      { sessionId },
+      {
+        $inc: { remainingAmount: -amount },
+        $push: { claims: { claimId, recipientName, amount, claimedAt: now } },
+      }
+    );
 
     await ClaimModel.create({
       claimId,
@@ -79,8 +100,8 @@ export async function POST(request: Request, context: Context) {
       recipientName,
       amount,
       cardUrl: `${baseUrl}/card/${claimId}`,
-      remainingSlots: session.remainingSlots,
-      remainingAmount: session.remainingAmount,
+      remainingSlots: before.remainingSlots - 1,
+      remainingAmount: before.remainingAmount - amount,
     });
   } catch (error) {
     return NextResponse.json(

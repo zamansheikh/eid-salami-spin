@@ -15,7 +15,11 @@ export async function POST(request: NextRequest) {
 
     await connectToDatabase();
 
+    // Only fetch the lightweight summary fields — never the (potentially huge)
+    // claims[] or pendingAmounts[] arrays. claimedCount is derivable from
+    // peopleCount - remainingSlots, so the list stays fast at any scale.
     const sessions = await SessionModel.find({})
+      .select("sessionId organizerName totalAmount peopleCount remainingSlots remainingAmount createdAt")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -26,7 +30,7 @@ export async function POST(request: NextRequest) {
       peopleCount: s.peopleCount,
       remainingSlots: s.remainingSlots,
       remainingAmount: s.remainingAmount,
-      claimedCount: s.claims?.length ?? 0,
+      claimedCount: Math.max(0, s.peopleCount - s.remainingSlots),
       createdAt: s.createdAt,
     }));
 
