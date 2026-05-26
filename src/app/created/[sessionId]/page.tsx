@@ -70,9 +70,11 @@ export default function CreatedPage({
   const [claimsPage, setClaimsPage] = useState(1);
   const CLAIMS_PER_PAGE = 10;
 
-  // Budget editing
+  // Session editing (organizer, budget, slots)
   const [editingBudget, setEditingBudget] = useState(false);
+  const [newOrganizer, setNewOrganizer] = useState("");
   const [newBudget, setNewBudget] = useState("");
+  const [newSlots, setNewSlots] = useState("");
   const [budgetSaving, setBudgetSaving] = useState(false);
   const [budgetError, setBudgetError] = useState("");
   const [budgetSuccess, setBudgetSuccess] = useState("");
@@ -126,9 +128,19 @@ export default function CreatedPage({
   const saveBudget = async () => {
     setBudgetError("");
     setBudgetSuccess("");
+    const organizer = newOrganizer.trim();
     const amount = Number(newBudget);
+    const slots = Number(newSlots);
+    if (!organizer) {
+      setBudgetError("Organizer name cannot be empty.");
+      return;
+    }
     if (!amount || amount <= 0 || !Number.isInteger(amount)) {
-      setBudgetError("Please enter a valid whole number.");
+      setBudgetError("Please enter a valid budget (whole number).");
+      return;
+    }
+    if (!Number.isInteger(slots) || slots < 0) {
+      setBudgetError("Please enter a valid number of remaining slots.");
       return;
     }
     setBudgetSaving(true);
@@ -136,13 +148,15 @@ export default function CreatedPage({
       const res = await fetch(`/api/sessions/${sessionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newTotalAmount: amount }),
+        body: JSON.stringify({ organizerName: organizer, newTotalAmount: amount, newRemainingSlots: slots }),
       });
       const data = await res.json() as { message?: string };
       if (!res.ok) throw new Error(data.message ?? "Update failed.");
-      setBudgetSuccess("Budget updated successfully!");
+      setBudgetSuccess("Updated successfully!");
       setEditingBudget(false);
+      setNewOrganizer("");
       setNewBudget("");
+      setNewSlots("");
       setTimeout(() => setBudgetSuccess(""), 3000);
     } catch (err) {
       setBudgetError(err instanceof Error ? err.message : "Something went wrong.");
@@ -196,14 +210,20 @@ export default function CreatedPage({
       <article className="panel">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.6rem" }}>
             <h2 style={{ margin: 0 }}>Status</h2>
-            {session && session.remainingSlots > 0 && !editingBudget && (
+            {session && !editingBudget && (
               <button
                 type="button"
                 className="btn btn-secondary"
                 style={{ fontSize: "0.78rem", padding: "0.3rem 0.7rem" }}
-                onClick={() => { setEditingBudget(true); setNewBudget(String(session.totalAmount)); setBudgetError(""); }}
+                onClick={() => {
+                  setEditingBudget(true);
+                  setNewOrganizer(session.organizerName);
+                  setNewBudget(String(session.totalAmount));
+                  setNewSlots(String(session.remainingSlots));
+                  setBudgetError("");
+                }}
               >
-                Edit Budget
+                Edit
               </button>
             )}
           </div>
@@ -219,21 +239,42 @@ export default function CreatedPage({
           )}
 
           {editingBudget && session && (
-            <div style={{ marginTop: "1rem", padding: "0.8rem", background: "rgba(212,168,83,0.07)", borderRadius: 12, border: "1px solid rgba(212,168,83,0.2)" }}>
-              <p style={{ margin: "0 0 0.3rem", color: "#fde68a", fontSize: "0.88rem", fontWeight: 600 }}>New Total Budget (BDT)</p>
-              <p style={{ margin: "0 0 0.5rem", color: "#6ee7b7", fontSize: "0.78rem" }}>
-                Already distributed: {bnNumber(alreadyClaimed)} — new budget must exceed this.
+            <div style={{ marginTop: "1rem", padding: "0.9rem", background: "rgba(212,168,83,0.07)", borderRadius: 12, border: "1px solid rgba(212,168,83,0.2)" }}>
+              <p style={{ margin: "0 0 0.6rem", color: "#6ee7b7", fontSize: "0.78rem" }}>
+                Already distributed: <b>{bnNumber(alreadyClaimed)} BDT</b> to <b>{bnNumber(session.claims.length)}</b> people — these stay fixed. Edit what&apos;s left:
               </p>
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <input type="number" min={1} value={newBudget} onChange={(e) => setNewBudget(e.target.value)} style={{ flex: 1 }} />
-                <button type="button" className="btn btn-primary" style={{ fontSize: "0.85rem", padding: "0.4rem 0.8rem" }} onClick={saveBudget} disabled={budgetSaving}>
-                  {budgetSaving ? "..." : "Save"}
+
+              <div style={{ marginBottom: "0.6rem" }}>
+                <label style={{ display: "block", color: "#fde68a", fontSize: "0.82rem", fontWeight: 600, marginBottom: "0.25rem" }}>
+                  Organizer Name
+                </label>
+                <input type="text" value={newOrganizer} onChange={(e) => setNewOrganizer(e.target.value)} style={{ width: "100%" }} />
+              </div>
+
+              <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+                <div style={{ flex: "1 1 130px" }}>
+                  <label style={{ display: "block", color: "#fde68a", fontSize: "0.82rem", fontWeight: 600, marginBottom: "0.25rem" }}>
+                    Total Budget (BDT)
+                  </label>
+                  <input type="number" min={1} value={newBudget} onChange={(e) => setNewBudget(e.target.value)} style={{ width: "100%" }} />
+                </div>
+                <div style={{ flex: "1 1 130px" }}>
+                  <label style={{ display: "block", color: "#fde68a", fontSize: "0.82rem", fontWeight: 600, marginBottom: "0.25rem" }}>
+                    Remaining Slots
+                  </label>
+                  <input type="number" min={0} value={newSlots} onChange={(e) => setNewSlots(e.target.value)} style={{ width: "100%" }} />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.7rem" }}>
+                <button type="button" className="btn btn-primary" style={{ fontSize: "0.85rem", padding: "0.5rem 1rem" }} onClick={saveBudget} disabled={budgetSaving}>
+                  {budgetSaving ? "Saving..." : "Save changes"}
                 </button>
-                <button type="button" className="btn btn-secondary" style={{ fontSize: "0.85rem", padding: "0.4rem 0.7rem" }} onClick={() => { setEditingBudget(false); setBudgetError(""); }}>
+                <button type="button" className="btn btn-secondary" style={{ fontSize: "0.85rem", padding: "0.5rem 0.9rem" }} onClick={() => { setEditingBudget(false); setBudgetError(""); }}>
                   Cancel
                 </button>
               </div>
-              {budgetError && <p style={{ color: "#fca5a5", margin: "0.4rem 0 0", fontSize: "0.82rem" }}>{budgetError}</p>}
+              {budgetError && <p style={{ color: "#fca5a5", margin: "0.5rem 0 0", fontSize: "0.82rem" }}>{budgetError}</p>}
             </div>
           )}
           {budgetSuccess && <p style={{ color: "#4ade80", marginTop: "0.5rem", fontSize: "0.88rem" }}>{budgetSuccess}</p>}

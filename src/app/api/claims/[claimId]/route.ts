@@ -63,7 +63,9 @@ export async function PATCH(request: Request, context: Context) {
       );
     }
 
-    const claim = await ClaimModel.findOne({ claimId, claimToken }).lean();
+    const claim = await ClaimModel.findOne({ claimId, claimToken })
+      .select("paymentRequest -_id")
+      .lean();
     if (!claim) {
       return NextResponse.json(
         { message: "এই সালামি কার্ড পাওয়া যায়নি অথবা টোকেন সঠিক নয়।" },
