@@ -4,6 +4,7 @@ import { toPng } from "html-to-image";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useRef, useState } from "react";
+import MosqueSkyline from "@/components/MosqueSkyline";
 
 type CardClientProps = {
   claimId: string;
@@ -61,6 +62,10 @@ export default function CardClient({
     } else {
       const stored = localStorage.getItem(`eid_claim_token_${claimId}`);
       if (stored) setClaimToken(stored);
+    }
+    // Arriving via "সালামি দাবি করুন" → open the claim form straight away.
+    if (params.get("claim") === "1" && !localStorage.getItem(`eid_pay_req_${claimId}`)) {
+      setShowPayModal(true);
     }
   }, [claimId]);
 
@@ -295,9 +300,8 @@ export default function CardClient({
 
       {/* ── The card for screenshot ──────────────────────── */}
       <div ref={cardRef} className="card-v2">
-        {/* top arc & mosque silhouette */}
+        {/* header — crescent, Eid Mubarak, winner title */}
         <div className="card-v2-header">
-          <div className="card-v2-mosque" aria-hidden="true">🕌</div>
           <div className="card-v2-moon" aria-hidden="true">🌙</div>
           <p className="card-v2-subtitle">Eid Mubarak</p>
           <h2 className="card-v2-heading">সালামি বিজয়ী</h2>
@@ -333,12 +337,17 @@ export default function CardClient({
           </div>
         </div>
 
-        {/* footer with QR */}
+        {/* golden mosque horizon */}
+        <MosqueSkyline className="card-v2-skyline" />
+
+        {/* footer "ground" with QR */}
         <div className="card-v2-footer">
           <div className="card-v2-brand">
-            <div style={{ fontWeight: 700, color: "#fde68a" }}>Eid Salami Wheel</div>
-            <div style={{ fontSize: "0.78rem", opacity: 0.7 }}>ভালোবাসার ঈদ উপহার</div>
-            <div style={{ fontSize: "0.72rem", opacity: 0.5, marginTop: 2 }}>ID: {claimId}</div>
+            <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#ffe79b" }}>
+              🌙 {homeUrl.replace(/^https?:\/\//, "")}
+            </div>
+            <div style={{ fontSize: "0.74rem", opacity: 0.8 }}>ভালোবাসার ঈদ উপহার</div>
+            <div style={{ fontSize: "0.68rem", opacity: 0.5, marginTop: 2 }}>ID: {claimId}</div>
           </div>
           {qrDataUrl && (
             <div className="card-v2-qr">
@@ -347,11 +356,11 @@ export default function CardClient({
               <img
                 src={qrDataUrl}
                 alt="QR Code"
-                width={80}
-                height={80}
-                style={{ borderRadius: 8, display: "block" }}
+                width={72}
+                height={72}
+                style={{ borderRadius: 6, display: "block" }}
               />
-              <span style={{ fontSize: "0.65rem", opacity: 0.6, marginTop: 2, display: "block", textAlign: "center" }}>
+              <span style={{ fontSize: "0.6rem", color: "#5b4708", fontWeight: 600, marginTop: 2, display: "block", textAlign: "center" }}>
                 স্ক্যান করুন
               </span>
             </div>

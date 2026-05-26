@@ -44,6 +44,10 @@ export async function GET(_request: Request, context: Context) {
       peopleCount: session.peopleCount,
       remainingAmount: session.remainingAmount,
       remainingSlots: session.remainingSlots,
+      // The exact amounts still up for grabs — used to render real values on
+      // the spin wheel. The claim picks one of these at random, so showing
+      // them can't be gamed (you can't choose which one you get).
+      pendingAmounts: session.pendingAmounts ?? [],
       claims: enrichedClaims,
       createdAt: session.createdAt,
     });

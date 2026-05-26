@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"spin: %{http_code}\\\\n\" http://localhost:3000/s/testxyz)",
+      "Bash(cp /tmp/eid-home.png f:/PN_Apps/eid-salami/.next/eid-home.png)",
+      "Bash(cp /tmp/eid-spin.png f:/PN_Apps/eid-salami/.next/eid-spin.png)",
+      "Bash(curl -s -X POST http://localhost:3000/api/sessions -H \"Content-Type: application/json\" -d '{\"organizerName\":\"মামা\",\"totalAmount\":5000,\"peopleCount\":8}')"
+    ]
+  }
+}

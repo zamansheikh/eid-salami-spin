@@ -49,13 +49,13 @@ export default function RootLayout({
 	return (
 		<html lang="bn">
 			<body className={`${arefRuqaaInk.variable} ${hindSiliguri.variable}`}>
-				{/* Floating Islamic decorations */}
+				{/* Floating festival decorations */}
 				<span className="decor decor-1" aria-hidden="true">🌙</span>
-				<span className="decor decor-2" aria-hidden="true">✦</span>
-				<span className="decor decor-3" aria-hidden="true">🕌</span>
-				<span className="decor decor-4" aria-hidden="true">☪</span>
-				<span className="decor decor-5" aria-hidden="true">✧</span>
-				<span className="decor decor-6" aria-hidden="true">🌟</span>
+				<span className="decor decor-2" aria-hidden="true">🏮</span>
+				<span className="decor decor-3" aria-hidden="true">🪙</span>
+				<span className="decor decor-4" aria-hidden="true">🏮</span>
+				<span className="decor decor-5" aria-hidden="true">✨</span>
+				<span className="decor decor-6" aria-hidden="true">⭐</span>
 				{children}
 				<footer style={{
 					textAlign: "center",

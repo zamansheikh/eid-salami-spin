@@ -3,6 +3,23 @@
 import confetti from "canvas-confetti";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import SpinWheel from "@/components/SpinWheel";
+import ClaimSalamiModal from "@/components/ClaimSalamiModal";
+import MosqueSkyline from "@/components/MosqueSkyline";
+import { buildWheelSegments, JACKPOT_INDEX, WHEEL_SEGMENTS, toBnNumber } from "@/lib/utils";
+
+/** Decelerating vibration pattern that mimics the wheel slowing down. */
+function decelTickPattern() {
+  const pattern: number[] = [];
+  let gap = 40;
+  let elapsed = 0;
+  while (elapsed < 4000) {
+    pattern.push(16, Math.round(gap));
+    elapsed += 16 + gap;
+    gap = Math.min(gap * 1.16, 420);
+  }
+  return pattern;
+}
 
 type SessionResponse = {
   sessionId: string;
@@ -11,6 +28,7 @@ type SessionResponse = {
   peopleCount: number;
   remainingAmount: number;
   remainingSlots: number;
+  pendingAmounts?: number[];
   message?: string;
 };
 
@@ -57,14 +75,60 @@ function setSpunData(sessionId: string, entry: SpunEntry) {
   } catch { /* ignore */ }
 }
 
-// ── Congratulations Modal ────────────────────────────────────────
+// ── Reusable gift-card visual (same look as the full card page) ──
+function GiftCardView({
+  recipientName,
+  organizerName,
+  amount,
+}: {
+  recipientName: string;
+  organizerName: string;
+  amount: number;
+}) {
+  return (
+    <div className="card-v2" style={{ width: "100%", margin: "0 0 1.1rem" }}>
+      <div className="card-v2-header" style={{ padding: "1.3rem 1.5rem 0.8rem" }}>
+        <div className="card-v2-moon" aria-hidden="true">🌙</div>
+        <p className="card-v2-subtitle">Eid Mubarak</p>
+        <h2 className="card-v2-heading">সালামি বিজয়ী</h2>
+      </div>
+
+      <div className="card-v2-amount-wrap" style={{ padding: "1rem 1rem 0.8rem" }}>
+        <span className="card-v2-currency">৳</span>
+        <span className="card-v2-amount">{bnNumber(amount)}</span>
+      </div>
+
+      <div className="card-v2-details" style={{ paddingBottom: "1.1rem" }}>
+        <div className="card-v2-row">
+          <span className="card-v2-label">প্রাপক</span>
+          <span className="card-v2-value">{recipientName}</span>
+        </div>
+        <div className="card-v2-divider" />
+        <div className="card-v2-row">
+          <span className="card-v2-label">দিয়েছেন</span>
+          <span className="card-v2-value">{organizerName}</span>
+        </div>
+      </div>
+
+      {/* golden mosque horizon at the foot of the card */}
+      <MosqueSkyline className="card-v2-skyline" />
+    </div>
+  );
+}
+
+// ── Congratulations Modal — shows the gift card directly ─────────
 function CongratsModal({
   result,
+  organizerName,
+  onClaim,
   onClose,
 }: {
   result: ClaimResponse;
+  organizerName: string;
+  onClaim: () => void;
   onClose: () => void;
 }) {
+  const cardHref = `/card/${result.claimId}?t=${result.claimToken}`;
   return (
     <div
       style={{
@@ -83,21 +147,23 @@ function CongratsModal({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "min(460px, 94vw)",
+          width: "min(440px, 94vw)",
+          maxHeight: "94vh",
+          display: "flex",
+          flexDirection: "column",
           borderRadius: 28,
           background: "linear-gradient(165deg, #052a22 0%, #0a4a3f 50%, #073d33 100%)",
           border: "2px solid rgba(212,168,83,0.5)",
           boxShadow: "0 24px 80px rgba(0,0,0,0.6), 0 0 60px rgba(212,168,83,0.12)",
           overflow: "hidden",
-          textAlign: "center",
           animation: "fadeUp 0.4s ease-out",
         }}
       >
         {/* gold top strip */}
-        <div style={{ height: 5, background: "linear-gradient(90deg,#92700a,#fcd34d,#92700a)" }} />
+        <div style={{ height: 5, background: "linear-gradient(90deg,#92700a,#fcd34d,#92700a)", flexShrink: 0 }} />
 
-        <div style={{ padding: "2rem 1.8rem 1.5rem" }}>
-          {/* badge */}
+        <div style={{ padding: "1.4rem 1.3rem 1.3rem", overflowY: "auto", textAlign: "center" }}>
+          {/* congrats badge */}
           <div style={{
             display: "inline-block",
             padding: "0.4rem 1.2rem",
@@ -108,50 +174,59 @@ function CongratsModal({
             fontSize: "0.95rem",
             marginBottom: "1rem",
           }}>
-            🌙 মাশাআল্লাহ! কংগ্র্যাটস!
+            🌙 মাশাআল্লাহ! কংগ্র্যাটস, {result.recipientName}!
           </div>
 
-          {/* name */}
-          <p style={{ margin: "0 0 0.3rem", color: "#a7f3d0", fontSize: "1.05rem" }}>
-            <b style={{ color: "#fde68a" }}>{result.recipientName}</b>, আপনি জিতেছেন
-          </p>
+          {/* the gift card itself */}
+          <GiftCardView
+            recipientName={result.recipientName}
+            organizerName={organizerName}
+            amount={result.amount}
+          />
 
-          {/* big amount */}
-          <div style={{
-            fontSize: "clamp(3.5rem, 14vw, 5.5rem)",
-            fontWeight: 800,
-            lineHeight: 1,
-            background: "linear-gradient(135deg, #fde68a, #fcd34d, #fef3c7)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            margin: "0.4rem 0 1rem",
-          }}>
-            ৳{bnNumber(result.amount)}
-          </div>
-
-          {/* CTA — open gift card */}
+          {/* actions */}
           <Link
-            href={`/card/${result.claimId}?t=${result.claimToken}`}
+            href={cardHref}
             className="btn btn-primary"
-            style={{ width: "100%", fontSize: "1.1rem", padding: "1rem", marginBottom: "0.7rem" }}
+            style={{ width: "100%", fontSize: "1.05rem", padding: "0.95rem", marginBottom: "0.6rem" }}
           >
             🎁 গিফট কার্ড খুলুন
           </Link>
 
-          {/* secondary */}
           <button
             type="button"
+            onClick={onClaim}
             className="btn btn-secondary"
-            style={{ width: "100%", fontSize: "0.95rem" }}
+            style={{
+              width: "100%",
+              fontSize: "1rem",
+              marginBottom: "0.7rem",
+              borderColor: "rgba(52,211,153,0.45)",
+              color: "#6ee7b7",
+            }}
+          >
+            💸 সালামি দাবি করুন
+          </button>
+
+          <button
+            type="button"
             onClick={onClose}
+            style={{
+              background: "none",
+              border: 0,
+              color: "rgba(255,255,255,0.45)",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              width: "100%",
+              padding: "0.2rem",
+            }}
           >
             পরে দেখবো
           </button>
         </div>
 
         {/* gold bottom strip */}
-        <div style={{ height: 5, background: "linear-gradient(90deg,#92700a,#fcd34d,#92700a)" }} />
+        <div style={{ height: 5, background: "linear-gradient(90deg,#92700a,#fcd34d,#92700a)", flexShrink: 0 }} />
       </div>
     </div>
   );
@@ -172,6 +247,11 @@ export default function SpinPage({
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState("");
   const [alreadySpun, setAlreadySpun] = useState<SpunEntry | null>(null);
+  const [segments, setSegments] = useState<number[]>(
+    () => buildWheelSegments(1000, [200, 100, 300, 50, 150])
+  );
+  const [winningIndex, setWinningIndex] = useState<number | null>(null);
+  const [claimTarget, setClaimTarget] = useState<{ claimId: string; claimToken: string } | null>(null);
 
   useEffect(() => {
     params.then((value) => setSessionId(value.sessionId));
@@ -188,7 +268,10 @@ export default function SpinPage({
     const load = async () => {
       const response = await fetch(`/api/sessions/${sessionId}`, { cache: "no-store" });
       const data = (await response.json()) as SessionResponse;
-      if (response.ok) setSession(data);
+      if (response.ok) {
+        setSession(data);
+        setSegments(buildWheelSegments(data.totalAmount, data.pendingAmounts ?? []));
+      }
     };
     load();
   }, [sessionId]);
@@ -198,6 +281,7 @@ export default function SpinPage({
   const spinAndClaim = async () => {
     setError("");
     setResult(null);
+    setWinningIndex(null);
 
     if (!recipientName.trim()) {
       setError("দয়া করে আপনার নাম লিখুন।");
@@ -220,12 +304,46 @@ export default function SpinPage({
         throw new Error(claimData.message || "স্পিন ব্যর্থ হয়েছে");
       }
 
-      const spinRound = 2160 + Math.floor(Math.random() * 360);
-      setRotation((prev) => prev + spinRound);
+      // The won amount is one of the real pending values already shown on the
+      // wheel — so prefer landing on the segment that already displays it (no
+      // visible change). Only if it isn't currently on the wheel do we inject
+      // it into a non-jackpot slot. Either way the pointer stops on the real
+      // won value.
+      let winIdx = segments.findIndex(
+        (v, idx) => v === claimData.amount && idx !== JACKPOT_INDEX
+      );
+      if (winIdx === -1) {
+        winIdx = Math.floor(Math.random() * WHEEL_SEGMENTS);
+        if (winIdx === JACKPOT_INDEX) winIdx = (winIdx + 1) % WHEEL_SEGMENTS;
+        setSegments((prev) => {
+          const next = [...prev];
+          next[winIdx] = claimData.amount;
+          return next;
+        });
+      }
+
+      const segAngle = 360 / WHEEL_SEGMENTS;
+      const centerLocal = winIdx * segAngle + segAngle / 2;
+      const desiredMod = (360 - (centerLocal % 360)) % 360;
+      setRotation((prev) => {
+        const currentMod = ((prev % 360) + 360) % 360;
+        let delta = desiredMod - currentMod;
+        if (delta < 0) delta += 360;
+        return prev + 360 * 5 + delta;
+      });
+
+      // Haptic: decelerating ticks while the wheel slows.
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate(decelTickPattern());
+      }
 
       window.setTimeout(() => {
         setResult(claimData);
+        setWinningIndex(winIdx);
         setShowModal(true);
+        if (typeof navigator !== "undefined" && navigator.vibrate) {
+          navigator.vibrate([0, 90, 50, 180]);
+        }
 
         setSpunData(sessionId, {
           claimId: claimData.claimId,
@@ -266,21 +384,51 @@ export default function SpinPage({
           ঈদ সালামি স্পিনার
         </h1>
         <div className="ornament">☪</div>
-        <section className="panel glow-pulse text-center" style={{ maxWidth: 550, margin: "1.5rem auto" }}>
-          <div className="already-spun">
-            <h2>আপনি ইতিমধ্যে স্পিন করেছেন!</h2>
-            <p className="text-muted" style={{ marginBottom: "0.8rem" }}>
-              একজন ব্যক্তি শুধুমাত্র একবার স্পিন করতে পারে।
-            </p>
-            <p><b>{alreadySpun.recipientName}</b>, আপনার সালামি ছিল:</p>
-            <div className="result-amount">৳ {bnNumber(alreadySpun.amount)}</div>
-            <div className="row" style={{ justifyContent: "center", marginTop: "1rem" }}>
-              <Link href={`/card/${alreadySpun.claimId}?t=${alreadySpun.claimToken}`} className="btn btn-primary">
-                🎁 আপনার কার্ড দেখুন
-              </Link>
-            </div>
-          </div>
+        <section className="panel glow-pulse text-center" style={{ maxWidth: 440, margin: "1.5rem auto" }}>
+          <h2 style={{ color: "var(--gold-200)", marginBottom: "0.4rem" }}>
+            আপনি ইতিমধ্যে স্পিন করেছেন!
+          </h2>
+          <p className="text-muted" style={{ marginBottom: "1.1rem", fontSize: "0.9rem" }}>
+            একজন ব্যক্তি শুধুমাত্র একবার স্পিন করতে পারে। এটি আপনার সালামি কার্ড:
+          </p>
+
+          <GiftCardView
+            recipientName={alreadySpun.recipientName}
+            organizerName={session?.organizerName ?? ""}
+            amount={alreadySpun.amount}
+          />
+
+          <Link
+            href={`/card/${alreadySpun.claimId}?t=${alreadySpun.claimToken}`}
+            className="btn btn-primary"
+            style={{ width: "100%", fontSize: "1.05rem", padding: "0.95rem", marginBottom: "0.6rem" }}
+          >
+            🎁 গিফট কার্ড খুলুন
+          </Link>
+          <button
+            type="button"
+            onClick={() =>
+              setClaimTarget({ claimId: alreadySpun.claimId, claimToken: alreadySpun.claimToken })
+            }
+            className="btn btn-secondary"
+            style={{
+              width: "100%",
+              fontSize: "1rem",
+              borderColor: "rgba(52,211,153,0.45)",
+              color: "#6ee7b7",
+            }}
+          >
+            💸 সালামি দাবি করুন
+          </button>
         </section>
+
+        {claimTarget && (
+          <ClaimSalamiModal
+            claimId={claimTarget.claimId}
+            claimToken={claimTarget.claimToken}
+            onClose={() => setClaimTarget(null)}
+          />
+        )}
       </main>
     );
   }
@@ -288,7 +436,22 @@ export default function SpinPage({
   return (
     <>
       {showModal && result && (
-        <CongratsModal result={result} onClose={() => setShowModal(false)} />
+        <CongratsModal
+          result={result}
+          organizerName={session?.organizerName ?? ""}
+          onClaim={() =>
+            setClaimTarget({ claimId: result.claimId, claimToken: result.claimToken })
+          }
+          onClose={() => setShowModal(false)}
+        />
+      )}
+
+      {claimTarget && (
+        <ClaimSalamiModal
+          claimId={claimTarget.claimId}
+          claimToken={claimTarget.claimToken}
+          onClose={() => setClaimTarget(null)}
+        />
       )}
 
       <main className="main-wrap">
@@ -308,32 +471,16 @@ export default function SpinPage({
               </p>
             )}
 
-            {/* Max amount teaser */}
+            {/* Jackpot teaser */}
             {session && !isEnded && (
-              <div style={{
-                textAlign: "center",
-                padding: "1rem 0.5rem",
-                marginBottom: "1rem",
-                borderRadius: 16,
-                background: "rgba(212,168,83,0.07)",
-                border: "1px solid rgba(212,168,83,0.2)",
-              }}>
-                <p style={{ margin: "0 0 0.2rem", color: "var(--emerald-300)", fontSize: "0.85rem" }}>
-                  বাকি আছে আরো! সর্বোচ্চ পেতে পারেন
+              <div className="jackpot-teaser">
+                <span className="jackpot-pill">🏆 জ্যাকপট</span>
+                <p style={{ margin: "0.5rem 0 0.1rem", color: "var(--violet-300)", fontSize: "0.85rem" }}>
+                  ভাগ্য সাথে থাকলে সর্বোচ্চ জিততে পারেন
                 </p>
-                <div style={{
-                  fontSize: "clamp(2rem, 7vw, 3rem)",
-                  fontWeight: 800,
-                  background: "linear-gradient(135deg, var(--gold-200), var(--gold-400))",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                  lineHeight: 1.1,
-                }}>
-                  ৳ {bnNumber(session.totalAmount)}
-                </div>
-                <p style={{ margin: "0.3rem 0 0", color: "var(--emerald-300)", fontSize: "0.8rem" }}>
-                  🍀 ভাগ্য চাকা ঘুরিয়ে দেখো!
+                <div className="jackpot-amount">৳ {bnNumber(session.totalAmount)}</div>
+                <p style={{ margin: "0.3rem 0 0", color: "var(--emerald-300)", fontSize: "0.82rem" }}>
+                  🎡 চাকা ঘুরিয়ে তোমার ভাগ্য পরীক্ষা করো!
                 </p>
               </div>
             )}
@@ -370,11 +517,13 @@ export default function SpinPage({
 
           {/* ── Right panel — wheel ──────────────────────── */}
           <article className="panel sparkle text-center">
-            <div className="wheel-wrap">
-              <div className="wheel-pointer" />
-              <div className="wheel" style={{ transform: `rotate(${rotation}deg)` }} />
-              <div className="wheel-center">Eid<br />Salami</div>
-            </div>
+            <SpinWheel
+              labels={segments.map((s) => `৳${toBnNumber(s)}`)}
+              rotation={rotation}
+              spinning={spinning}
+              winningIndex={winningIndex}
+              jackpotIndex={JACKPOT_INDEX}
+            />
 
             {result && (
               <div style={{ marginTop: "0.8rem" }}>

@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import SpinWheel from "@/components/SpinWheel";
+import { buildWheelSegments, JACKPOT_INDEX, toBnNumber } from "@/lib/utils";
 
 type CreateResponse = {
   sessionId: string;
@@ -55,6 +57,19 @@ export default function HomePage() {
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState("");
   const router = useRouter();
+
+  // Live preview labels for the showcase wheel — update as inputs change.
+  const previewLabels = useMemo(() => {
+    const total = totalAmount > 0 ? totalAmount : 1000;
+    const people = peopleCount > 0 ? peopleCount : 5;
+    const avg = total / people;
+    // No live session on the home page, so synthesize realistic-looking shares
+    // around the average for the showcase wheel.
+    const sample = [avg, avg * 0.5, avg * 1.6, avg * 0.3, avg * 2.2].map((v) =>
+      Math.max(1, Math.round(v))
+    );
+    return buildWheelSegments(total, sample).map((v) => `৳${toBnNumber(v)}`);
+  }, [totalAmount, peopleCount]);
 
   useEffect(() => {
     setSavedSessions(loadSavedSessions());
@@ -160,6 +175,12 @@ export default function HomePage() {
         অ্যামাউন্ট ভাগ করবে, একটি শেয়ার লিংক তৈরি হবে, আর সবাই স্পিন করে নিজের সালামি
         জিতবে।
       </p>
+
+      {/* ── Showcase wheel — idle auto-spin preview ─────────── */}
+      <div className="hero-wheel">
+        <SpinWheel labels={previewLabels} rotation={0} spinning={false} jackpotIndex={JACKPOT_INDEX} idle />
+        <p className="hero-wheel-hint">🍀 ভাগ্যের চাকা — সবাই নিজের সালামি জিতবে</p>
+      </div>
 
       <div className="ornament">☪</div>
 
